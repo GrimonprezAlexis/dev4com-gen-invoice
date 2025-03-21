@@ -23,7 +23,7 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { QuoteForm } from "./components/quotes/form";
 import { QuotePreview } from "./components/quotes/preview";
 import { CompanySettings } from "./components/company-settings";
@@ -34,6 +34,7 @@ import { BillingPreview } from "./components/billing/preview";
 import { BillingInvoice, Invoice } from "./types";
 import { useConfetti } from "./hooks/use-confetti";
 import { DemoButton } from "./components/demo-button";
+import { ThemeToggle } from "./components/theme-toggle";
 
 import {
   saveInvoice,
@@ -210,15 +211,18 @@ export default function Home() {
           <h1 className="text-2xl sm:text-3xl font-bold text-primary">
             Dev4Ecom
           </h1>
-          <Button
-            variant="outline"
-            className="sm:hidden"
-            onClick={() => setIsMobileMenuOpen(true)}
-          >
-            <Menu className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="sm:hidden"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         <div className="hidden sm:flex gap-2">
+          <ThemeToggle />
           <Button
             variant="outline"
             onClick={() => setViewMode(viewMode === "grid" ? "split" : "grid")}
@@ -286,7 +290,7 @@ export default function Home() {
               }}
             >
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full">
                   <Plus className="mr-2 h-4 w-4" />
                   Nouveau Devis
                 </Button>
@@ -420,7 +424,7 @@ export default function Home() {
                   <QuotePreview invoice={selectedInvoice} />
                 ) : (
                   <div className="h-full flex items-center justify-center text-muted-foreground">
-                    Sélectionnez un devis pour afficher l'aperçu
+                    Sélectionnez un devis pour afficher l&apos;aperçu
                   </div>
                 )}
               </div>
@@ -469,7 +473,9 @@ export default function Home() {
                   <div className="h-full flex items-center justify-center text-muted-foreground">
                     <div className="text-center">
                       <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Sélectionnez une facture pour afficher l'aperçu</p>
+                      <p>
+                        Sélectionnez une facture pour afficher l&apos;aperçu
+                      </p>
                     </div>
                   </div>
                 )}
