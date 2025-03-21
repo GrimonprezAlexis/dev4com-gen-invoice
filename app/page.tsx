@@ -1,10 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building2, FileText, Plus, Settings, BarChart, LayoutGrid, Columns, Menu, Receipt } from "lucide-react";
+import {
+  Building2,
+  FileText,
+  Plus,
+  Settings,
+  BarChart,
+  LayoutGrid,
+  Columns,
+  Menu,
+  Receipt,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,14 +35,14 @@ import { BillingInvoice, Invoice } from "./types";
 import { useConfetti } from "./hooks/use-confetti";
 import { DemoButton } from "./components/demo-button";
 
-import { 
-  saveInvoice, 
-  getInvoices, 
+import {
+  saveInvoice,
+  getInvoices,
   deleteInvoice,
   saveBillingInvoice,
   getBillingInvoices,
   deleteBillingInvoice,
-  updateInvoice
+  updateInvoice,
 } from "@/lib/firebase";
 
 export default function Home() {
@@ -37,11 +52,13 @@ export default function Home() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'split'>('grid');
+  const [viewMode, setViewMode] = useState<"grid" | "split">("grid");
   const [billingInvoices, setBillingInvoices] = useState<BillingInvoice[]>([]);
-  const [selectedBillingInvoice, setSelectedBillingInvoice] = useState<BillingInvoice | null>(null);
+  const [selectedBillingInvoice, setSelectedBillingInvoice] =
+    useState<BillingInvoice | null>(null);
   const [isBillingPreviewOpen, setIsBillingPreviewOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const fireConfetti = useConfetti();
 
   useEffect(() => {
@@ -74,18 +91,18 @@ export default function Home() {
   const handleSaveInvoice = async (invoice: Invoice) => {
     try {
       await saveInvoice(invoice);
-      
+
       if (editingInvoice) {
-        const newInvoices = invoices.map(inv => 
+        const newInvoices = invoices.map((inv) =>
           inv.id === editingInvoice.id ? invoice : inv
         );
         setInvoices(newInvoices);
         toast.success("Devis mis à jour avec succès !");
       } else {
-        setInvoices(prev => [invoice, ...prev]);
+        setInvoices((prev) => [invoice, ...prev]);
         toast.success("Nouveau devis créé avec succès !");
       }
-      
+
       setIsDialogOpen(false);
       setEditingInvoice(null);
     } catch (error) {
@@ -97,7 +114,7 @@ export default function Home() {
   const handleUpdateBillingInvoice = async (invoice: BillingInvoice) => {
     try {
       await saveBillingInvoice(invoice);
-      const newBillingInvoices = billingInvoices.map(inv => 
+      const newBillingInvoices = billingInvoices.map((inv) =>
         inv.id === invoice.id ? invoice : inv
       );
       setBillingInvoices(newBillingInvoices);
@@ -111,14 +128,9 @@ export default function Home() {
   const handleGenerateInvoice = async (invoice: BillingInvoice) => {
     try {
       await saveBillingInvoice(invoice);
-      
-      // Fetch all billing invoices to ensure we have the latest data
       const updatedBillingInvoices = await getBillingInvoices();
       setBillingInvoices(updatedBillingInvoices);
-      
-      // Switch to billing tab to show the new invoice
       setActiveTab("billing");
-      
       toast.success("Facture générée avec succès !");
     } catch (error) {
       console.error("Error generating billing invoice:", error);
@@ -126,17 +138,20 @@ export default function Home() {
     }
   };
 
-  const updateInvoiceStatus = async (invoiceId: string, status: 'draft' | 'sent' | 'accepted' | 'rejected') => {
+  const updateInvoiceStatus = async (
+    invoiceId: string,
+    status: "draft" | "sent" | "accepted" | "rejected"
+  ) => {
     try {
       await updateInvoice(invoiceId, { status });
-      const updatedInvoices = invoices.map(invoice => {
+      const updatedInvoices = invoices.map((invoice) => {
         if (invoice.id === invoiceId) {
-          if (status === 'accepted') {
+          if (status === "accepted") {
             fireConfetti();
             toast.success("🎉 Félicitations ! Le devis a été accepté !");
-          } else if (status === 'sent') {
+          } else if (status === "sent") {
             toast.info("Le devis a été marqué comme envoyé");
-          } else if (status === 'rejected') {
+          } else if (status === "rejected") {
             toast.error("Le devis a été refusé");
           }
           return { ...invoice, status };
@@ -152,10 +167,14 @@ export default function Home() {
 
   const handleDeleteInvoices = async (ids: string[]) => {
     try {
-      await Promise.all(ids.map(id => deleteInvoice(id)));
-      const newInvoices = invoices.filter(invoice => !ids.includes(invoice.id));
+      await Promise.all(ids.map((id) => deleteInvoice(id)));
+      const newInvoices = invoices.filter(
+        (invoice) => !ids.includes(invoice.id)
+      );
       setInvoices(newInvoices);
-      toast.success(`${ids.length} devis supprimé${ids.length > 1 ? 's' : ''} avec succès !`);
+      toast.success(
+        `${ids.length} devis supprimé${ids.length > 1 ? "s" : ""} avec succès !`
+      );
     } catch (error) {
       console.error("Error deleting invoices:", error);
       toast.error("Erreur lors de la suppression des devis");
@@ -165,7 +184,9 @@ export default function Home() {
   const handleDeleteBillingInvoice = async (id: string) => {
     try {
       await deleteBillingInvoice(id);
-      const newBillingInvoices = billingInvoices.filter(invoice => invoice.id !== id);
+      const newBillingInvoices = billingInvoices.filter(
+        (invoice) => invoice.id !== id
+      );
       setBillingInvoices(newBillingInvoices);
       toast.success("Facture supprimée avec succès !");
     } catch (error) {
@@ -184,58 +205,86 @@ export default function Home() {
 
   return (
     <main className="container mx-auto p-2 sm:p-4 space-y-4">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h1 className="text-3xl sm:text-4xl font-bold text-primary">Dev4Ecom</h1>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="sm:hidden">
-                <Menu className="h-4 w-4" />
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-0 bg-background z-50 pb-2 border-b">
+        <div className="flex items-center justify-between w-full sm:w-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+            Dev4Ecom
+          </h1>
+          <Button
+            variant="outline"
+            className="sm:hidden"
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="hidden sm:flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setViewMode(viewMode === "grid" ? "split" : "grid")}
+          >
+            {viewMode === "grid" ? (
+              <Columns className="mr-2 h-4 w-4" />
+            ) : (
+              <LayoutGrid className="mr-2 h-4 w-4" />
+            )}
+            {viewMode === "grid" ? "Vue divisée" : "Vue grille"}
+          </Button>
+          <DemoButton />
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) setEditingInvoice(null);
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nouveau Devis
               </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:hidden">
-              <div className="flex flex-col gap-2 mt-4">
-                <Button variant="outline" onClick={() => setViewMode(viewMode === 'grid' ? 'split' : 'grid')} className="w-full">
-                  {viewMode === 'grid' ? (
-                    <Columns className="mr-2 h-4 w-4" />
-                  ) : (
-                    <LayoutGrid className="mr-2 h-4 w-4" />
-                  )}
-                  {viewMode === 'grid' ? 'Vue divisée' : 'Vue grille'}
-                </Button>
-                <DemoButton />
-                <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                  setIsDialogOpen(open);
-                  if (!open) setEditingInvoice(null);
-                }}>
-                  <DialogTrigger asChild>
-                    <Button className="w-full">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Nouveau Devis
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <DialogTitle>{editingInvoice ? 'Modifier le devis' : 'Créer un nouveau devis'}</DialogTitle>
-                    <QuoteForm onSave={handleSaveInvoice} initialData={editingInvoice} />
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </SheetContent>
-          </Sheet>
-          <div className="hidden sm:flex gap-2">
-            <Button variant="outline" onClick={() => setViewMode(viewMode === 'grid' ? 'split' : 'grid')}>
-              {viewMode === 'grid' ? (
+            </DialogTrigger>
+            <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogTitle>
+                {editingInvoice
+                  ? "Modifier le devis"
+                  : "Créer un nouveau devis"}
+              </DialogTitle>
+              <QuoteForm
+                onSave={handleSaveInvoice}
+                initialData={editingInvoice}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="right" className="w-[300px] sm:hidden">
+          <div className="flex flex-col gap-4 mt-8">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setViewMode(viewMode === "grid" ? "split" : "grid");
+                setIsMobileMenuOpen(false);
+              }}
+            >
+              {viewMode === "grid" ? (
                 <Columns className="mr-2 h-4 w-4" />
               ) : (
                 <LayoutGrid className="mr-2 h-4 w-4" />
               )}
-              {viewMode === 'grid' ? 'Vue divisée' : 'Vue grille'}
+              {viewMode === "grid" ? "Vue divisée" : "Vue grille"}
             </Button>
             <DemoButton />
-            <Dialog open={isDialogOpen} onOpenChange={(open) => {
-              setIsDialogOpen(open);
-              if (!open) setEditingInvoice(null);
-            }}>
+            <Dialog
+              open={isDialogOpen}
+              onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open) setEditingInvoice(null);
+                setIsMobileMenuOpen(false);
+              }}
+            >
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
@@ -243,13 +292,20 @@ export default function Home() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogTitle>{editingInvoice ? 'Modifier le devis' : 'Créer un nouveau devis'}</DialogTitle>
-                <QuoteForm onSave={handleSaveInvoice} initialData={editingInvoice} />
+                <DialogTitle>
+                  {editingInvoice
+                    ? "Modifier le devis"
+                    : "Créer un nouveau devis"}
+                </DialogTitle>
+                <QuoteForm
+                  onSave={handleSaveInvoice}
+                  initialData={editingInvoice}
+                />
               </DialogContent>
             </Dialog>
           </div>
-        </div>
-      </div>
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="w-full max-w-7xl max-h-[90vh]">
@@ -258,39 +314,63 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isBillingPreviewOpen} onOpenChange={setIsBillingPreviewOpen}>
+      <Dialog
+        open={isBillingPreviewOpen}
+        onOpenChange={setIsBillingPreviewOpen}
+      >
         <DialogContent className="w-full max-w-7xl max-h-[90vh]">
           <DialogTitle>Aperçu de la facture</DialogTitle>
-          {selectedBillingInvoice && <BillingPreview invoice={selectedBillingInvoice} />}
+          {selectedBillingInvoice && (
+            <BillingPreview invoice={selectedBillingInvoice} />
+          )}
         </DialogContent>
       </Dialog>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
-          <TabsTrigger value="invoices" className="flex items-center">
-            <FileText className="mr-2 h-4 w-4" />
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
+        <TabsList className="w-full grid grid-cols-5 h-auto p-1">
+          <TabsTrigger
+            value="invoices"
+            className="flex items-center py-2 sm:py-3"
+          >
+            <FileText className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Devis</span>
           </TabsTrigger>
-          <TabsTrigger value="billing" className="flex items-center">
-            <Receipt className="mr-2 h-4 w-4" />
+          <TabsTrigger
+            value="billing"
+            className="flex items-center py-2 sm:py-3"
+          >
+            <Receipt className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Factures</span>
           </TabsTrigger>
-          <TabsTrigger value="clients" className="flex items-center">
-            <Building2 className="mr-2 h-4 w-4" />
+          <TabsTrigger
+            value="clients"
+            className="flex items-center py-2 sm:py-3"
+          >
+            <Building2 className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Clients</span>
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center">
-            <BarChart className="mr-2 h-4 w-4" />
+          <TabsTrigger
+            value="analytics"
+            className="flex items-center py-2 sm:py-3"
+          >
+            <BarChart className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Analyses</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center">
-            <Settings className="mr-2 h-4 w-4" />
+          <TabsTrigger
+            value="settings"
+            className="flex items-center py-2 sm:py-3"
+          >
+            <Settings className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Paramètres</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="invoices">
-          {viewMode === 'grid' ? (
+          {viewMode === "grid" ? (
             <QuoteList
               invoices={invoices}
               selectedInvoice={selectedInvoice}
@@ -349,7 +429,7 @@ export default function Home() {
         </TabsContent>
 
         <TabsContent value="billing">
-          {viewMode === 'grid' ? (
+          {viewMode === "grid" ? (
             <BillingList
               invoices={billingInvoices}
               selectedInvoice={selectedBillingInvoice}
@@ -400,31 +480,44 @@ export default function Home() {
 
         <TabsContent value="clients" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from(new Set(invoices.map(inv => inv.client.siren))).map(siren => {
-              const client = invoices.find(inv => inv.client.siren === siren)?.client;
-              const clientInvoices = invoices.filter(inv => inv.client.siren === siren);
-              const totalAmount = clientInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
-              
-              return (
-                <div key={siren} className="bg-card p-6 rounded-lg shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-semibold">{client?.name}</h3>
-                      <p className="text-sm text-muted-foreground">SIREN: {client?.siren}</p>
+            {Array.from(new Set(invoices.map((inv) => inv.client.siren))).map(
+              (siren) => {
+                const client = invoices.find(
+                  (inv) => inv.client.siren === siren
+                )?.client;
+                const clientInvoices = invoices.filter(
+                  (inv) => inv.client.siren === siren
+                );
+                const totalAmount = clientInvoices.reduce(
+                  (sum, inv) => sum + inv.totalAmount,
+                  0
+                );
+
+                return (
+                  <div key={siren} className="bg-card p-6 rounded-lg shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-semibold">{client?.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          SIREN: {client?.siren}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-600">
+                          {totalAmount.toLocaleString("fr-FR")} €
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {clientInvoices.length} devis
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-green-600">
-                        {totalAmount.toLocaleString('fr-FR')} €
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {clientInvoices.length} devis
-                      </p>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {client?.address}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{client?.address}</p>
-                </div>
-              );
-            })}
+                );
+              }
+            )}
           </div>
         </TabsContent>
 
