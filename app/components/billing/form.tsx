@@ -11,10 +11,8 @@ interface BillingFormProps {
 
 export function BillingForm({ quote, invoice, onSave }: BillingFormProps) {
   return (
-    <BaseBillingInvoiceForm 
-      quote={quote}
-      invoice={invoice}
-      onSave={onSave}
-    />
+    <div className="h-full overflow-auto">
+      <BaseBillingInvoiceForm quote={quote} invoice={invoice} onSave={onSave} />
+    </div>
   );
 }
