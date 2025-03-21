@@ -1,0 +1,312 @@
+"use client";
+
+import { Page, Text, View, Document, StyleSheet, PDFViewer, Image } from "@react-pdf/renderer";
+import { Invoice, BillingInvoice } from "@/app/types";
+
+const styles = StyleSheet.create({
+  page: {
+    padding: 30,
+    fontSize: 11,
+    fontFamily: "Helvetica",
+    color: "#333333",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    borderBottom: "2px solid #2563eb",
+    paddingBottom: 10,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  logo: {
+    width: 150,
+    height: 60,
+    objectFit: "contain",
+    objectPosition: "right",
+  },
+  title: {
+    fontSize: 24,
+    color: "#2563eb",
+    marginBottom: 5,
+    fontWeight: "bold",
+  },
+  invoiceNumber: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 2,
+  },
+  date: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  section: {
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    marginBottom: 5,
+    color: "#1f2937",
+    textTransform: "uppercase",
+  },
+  companyInfo: {
+    fontSize: 10,
+    lineHeight: 1.4,
+  },
+  table: {
+    marginVertical: 15,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#f3f4f6",
+    padding: 6,
+    fontWeight: "bold",
+    fontSize: 10,
+    borderBottom: "1px solid #e5e7eb",
+  },
+  tableRow: {
+    flexDirection: "row",
+    padding: 6,
+    borderBottom: "1px solid #e5e7eb",
+    fontSize: 10,
+    minHeight: 25,
+  },
+  col1: { width: "8%", paddingRight: 4 },
+  col2: { width: "52%", paddingRight: 4 },
+  col3: { width: "20%", paddingRight: 4, textAlign: "right" },
+  col4: { width: "20%", textAlign: "right" },
+  totalsSection: {
+    marginTop: 15,
+    marginLeft: "auto",
+    width: "40%",
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: "4px 0",
+    fontSize: 10,
+  },
+  totalRowBold: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: "4px 0",
+    fontWeight: "bold",
+    borderTop: "2px solid #2563eb",
+    marginTop: 4,
+    fontSize: 11,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 30,
+    left: 30,
+    right: 30,
+  },
+  footerText: {
+    fontSize: 9,
+    color: "#6b7280",
+    textAlign: "center",
+    borderTop: "1px solid #e5e7eb",
+    paddingTop: 10,
+  },
+  conditions: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: "#f9fafb",
+    borderRadius: 4,
+  },
+  conditionsTitle: {
+    fontSize: 11,
+    fontWeight: "bold",
+    marginBottom: 4,
+    color: "#1f2937",
+  },
+  conditionsText: {
+    fontSize: 9,
+    color: "#4b5563",
+    lineHeight: 1.4,
+  },
+  highlight: {
+    color: "#2563eb",
+  },
+});
+
+interface DocumentPreviewProps {
+  document: Invoice | BillingInvoice;
+  type: 'quote' | 'billing';
+}
+
+const formatNumber = (number: number) => {
+  return number.toLocaleString('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: true
+  }).replace(/\s/g, ' ');
+};
+
+export function DocumentPreview({ document, type }: DocumentPreviewProps) {
+  const isQuote = type === 'quote';
+  const title = isQuote ? 'DEVIS' : 'FACTURE';
+
+  return (
+    <PDFViewer className="w-full h-[80vh]">
+      <Document>
+        <Page size="A4" style={styles.page}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.invoiceNumber}>N° {document.number}</Text>
+              <Text style={styles.date}>
+                Date: {new Date(document.date).toLocaleDateString()}
+              </Text>
+              {isQuote ? (
+                <Text style={styles.date}>
+                  Valable jusqu'au: {new Date((document as Invoice).validUntil).toLocaleDateString()}
+                </Text>
+              ) : (
+                <Text style={styles.date}>
+                  Devis associé: {(document as BillingInvoice).quoteNumber}
+                </Text>
+              )}
+            </View>
+            <View style={styles.headerRight}>
+              {document.company.logo && (
+                <Image 
+                  src={document.company.logo} 
+                  style={styles.logo}
+                  cache={false}
+                />
+              )}
+            </View>
+          </View>
+
+          <View style={{ flexDirection: "row", marginBottom: 20 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sectionTitle}>Émetteur</Text>
+              <Text style={styles.companyInfo}>{document.company.name}</Text>
+              <Text style={styles.companyInfo}>{document.company.address}</Text>
+              <Text style={styles.companyInfo}>SIREN: {document.company.siren}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sectionTitle}>Client</Text>
+              <Text style={styles.companyInfo}>{document.client.name}</Text>
+              <Text style={styles.companyInfo}>{document.client.address}</Text>
+              <Text style={styles.companyInfo}>SIREN: {document.client.siren}</Text>
+            </View>
+          </View>
+
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={styles.col1}>Qté</Text>
+              <Text style={styles.col2}>Description</Text>
+              <Text style={styles.col3}>Prix unitaire</Text>
+              <Text style={styles.col4}>Montant</Text>
+            </View>
+
+            {document.services.map((service) => (
+              <View key={service.id} style={styles.tableRow}>
+                <Text style={styles.col1}>{service.quantity}</Text>
+                <Text style={styles.col2}>{service.description}</Text>
+                <Text style={styles.col3}>{formatNumber(service.unitPrice)} €</Text>
+                <Text style={styles.col4}>{formatNumber(service.amount)} €</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.totalsSection}>
+            {isQuote ? (
+              <>
+                <View style={styles.totalRow}>
+                  <Text>Sous-total:</Text>
+                  <Text>{formatNumber((document as Invoice).subtotal)} €</Text>
+                </View>
+
+                {(document as Invoice).discount.value > 0 && (
+                  <View style={styles.totalRow}>
+                    <Text>
+                      Remise ({(document as Invoice).discount.type === 'percentage' ? '%' : '€'}):
+                    </Text>
+                    <Text style={styles.highlight}>
+                      -{(document as Invoice).discount.type === 'percentage'
+                        ? `${(document as Invoice).discount.value}%`
+                        : `${formatNumber((document as Invoice).discount.value)} €`}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.totalRowBold}>
+                  <Text>Total:</Text>
+                  <Text>{formatNumber(document.totalAmount)} €</Text>
+                </View>
+
+                <View style={styles.totalRow}>
+                  <Text>Acompte ({(document as Invoice).deposit}%):</Text>
+                  <Text>
+                    {formatNumber(document.totalAmount * (document as Invoice).deposit / 100)} €
+                  </Text>
+                </View>
+
+                <View style={styles.totalRow}>
+                  <Text>Solde:</Text>
+                  <Text>{formatNumber((document as Invoice).remainingBalance)} €</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.totalRow}>
+                  <Text>Sous-total:</Text>
+                  <Text>{formatNumber(document.totalAmount)} €</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text>TVA ({(document as BillingInvoice).taxRate}%):</Text>
+                  <Text>{formatNumber((document as BillingInvoice).taxAmount)} €</Text>
+                </View>
+                <View style={styles.totalRowBold}>
+                  <Text>Total TTC:</Text>
+                  <Text>{formatNumber((document as BillingInvoice).totalWithTax)} €</Text>
+                </View>
+              </>
+            )}
+          </View>
+
+          {isQuote ? (
+            <View style={styles.conditions}>
+              <Text style={styles.conditionsTitle}>Conditions</Text>
+              <Text style={styles.conditionsText}>
+                Délai de livraison: {(document as Invoice).deliveryTime}
+              </Text>
+              <Text style={styles.conditionsText}>
+                Conditions de paiement: {(document as Invoice).paymentTerms}
+              </Text>
+            </View>
+          ) : (
+            (document as BillingInvoice).notes && (
+              <View style={styles.conditions}>
+                <Text style={styles.conditionsTitle}>Notes</Text>
+                <Text style={styles.conditionsText}>
+                  {(document as BillingInvoice).notes}
+                </Text>
+              </View>
+            )
+          )}
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              {isQuote ? (
+                `Ce devis est valable jusqu'au ${new Date((document as Invoice).validUntil).toLocaleDateString()}. 
+                Pour toute question, n'hésitez pas à nous contacter.`
+              ) : (
+                `Date d'échéance : ${new Date((document as BillingInvoice).dueDate).toLocaleDateString()}`
+              )}
+            </Text>
+          </View>
+        </Page>
+      </Document>
+    </PDFViewer>
+  );
+}

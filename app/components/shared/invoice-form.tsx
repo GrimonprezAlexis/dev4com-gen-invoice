@@ -1,0 +1,339 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { Plus, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Invoice, Service, Company } from "@/app/types";
+import { TemplateSelector } from "../template-selector";
+
+interface InvoiceFormProps {
+  onSave: (invoice: Invoice) => void;
+  initialData?: Invoice | null;
+  type: 'quote' | 'billing';
+  companyInfo?: Company | null;
+}
+
+export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceFormProps) {
+  const [services, setServices] = useState<Service[]>([
+    { id: crypto.randomUUID(), quantity: 1, description: "", unitPrice: 0, amount: 0 },
+  ]);
+  const [subtotal, setSubtotal] = useState(0);
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountValue, setDiscountValue] = useState(0);
+  const [totalAmount, setTotalAmount] = useState(0);
+
+  const { register, handleSubmit, reset, setValue } = useForm<Invoice>({
+    defaultValues: initialData || {
+      company: companyInfo || {
+        name: "Dev4Ecom",
+        address: "60 rue François 1er, 75008 Paris",
+        siren: "814 428 785",
+      },
+      status: "draft",
+      deposit: 50,
+      services: [],
+      discount: {
+        type: 'percentage',
+        value: 0
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (initialData) {
+      setServices(initialData.services);
+      setDiscountType(initialData.discount.type);
+      setDiscountValue(initialData.discount.value);
+    }
+  }, [initialData]);
+
+  useEffect(() => {
+    if (companyInfo && !initialData) {
+      setValue("company", companyInfo);
+    }
+  }, [companyInfo, initialData, setValue]);
+
+  const handleTemplateSelect = (template: Invoice) => {
+    setServices(template.services);
+    setDiscountType(template.discount.type);
+    setDiscountValue(template.discount.value);
+    setValue("client", template.client);
+    setValue("deposit", template.deposit);
+    setValue("deliveryTime", template.deliveryTime);
+    setValue("paymentTerms", template.paymentTerms);
+    
+    // Keep current company info when using a template
+    if (companyInfo) {
+      setValue("company", companyInfo);
+    }
+  };
+
+  const addService = () => {
+    setServices([...services, { id: crypto.randomUUID(), quantity: 1, description: "", unitPrice: 0, amount: 0 }]);
+  };
+
+  const removeService = (id: string) => {
+    setServices(services.filter(service => service.id !== id));
+  };
+
+  const calculateAmount = (quantity: number, unitPrice: number) => {
+    return quantity * unitPrice;
+  };
+
+  useEffect(() => {
+    const newSubtotal = services.reduce((sum, service) => sum + service.amount, 0);
+    setSubtotal(newSubtotal);
+
+    let discount = 0;
+    if (discountType === 'percentage') {
+      discount = (newSubtotal * discountValue) / 100;
+    } else {
+      discount = discountValue;
+    }
+
+    const newTotal = Math.max(0, newSubtotal - discount);
+    setTotalAmount(newTotal);
+  }, [services, discountType, discountValue]);
+
+  const onSubmit = (data: Invoice) => {
+    const invoice: Invoice = {
+      ...data,
+      id: initialData?.id || crypto.randomUUID(),
+      number: initialData?.number || `${type === 'quote' ? 'DEV' : 'FAC'}-${Date.now()}`,
+      date: initialData?.date || new Date().toISOString(),
+      validUntil: initialData?.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      services,
+      subtotal,
+      discount: {
+        type: discountType,
+        value: discountValue
+      },
+      totalAmount,
+      remainingBalance: totalAmount * (1 - data.deposit / 100),
+      createdAt: initialData?.createdAt || new Date(),
+      company: companyInfo || data.company, // Use companyInfo if available
+    };
+
+    onSave(invoice);
+    if (!initialData) {
+      reset();
+      setServices([{ id: crypto.randomUUID(), quantity: 1, description: "", unitPrice: 0, amount: 0 }]);
+      setDiscountValue(0);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <div className="flex justify-end">
+        <TemplateSelector
+          onSelectTemplate={handleTemplateSelect}
+          currentInvoice={initialData || undefined}
+        />
+      </div>
+
+      <ScrollArea className="h-[calc(100vh-200px)] pr-4">
+        <div className="space-y-8">
+          <Card className="p-4 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold mb-6">Informations du client</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="clientName">Nom de l'entreprise</Label>
+                <Input
+                  id="clientName"
+                  {...register("client.name")}
+                  placeholder="AMERICAINE IMPORT"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="clientSiren">SIREN</Label>
+                <Input
+                  id="clientSiren"
+                  {...register("client.siren")}
+                  placeholder="898 730 551"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="clientAddress">Adresse</Label>
+                <Input
+                  id="clientAddress"
+                  {...register("client.address")}
+                  placeholder="Adresse complète"
+                />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 sm:p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold">Services</h2>
+              <Button type="button" onClick={addService} variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter un service
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {services.map((service, index) => (
+                <div key={service.id} className="grid grid-cols-12 gap-2 sm:gap-4 items-end">
+                  <div className="col-span-2 sm:col-span-1">
+                    <Label htmlFor={`quantity-${index}`}>Qté</Label>
+                    <Input
+                      id={`quantity-${index}`}
+                      type="number"
+                      value={service.quantity}
+                      onChange={(e) => {
+                        const newServices = [...services];
+                        const serviceIndex = newServices.findIndex(s => s.id === service.id);
+                        newServices[serviceIndex].quantity = parseInt(e.target.value);
+                        newServices[serviceIndex].amount = calculateAmount(
+                          parseInt(e.target.value),
+                          newServices[serviceIndex].unitPrice
+                        );
+                        setServices(newServices);
+                      }}
+                    />
+                  </div>
+                  <div className="col-span-10 sm:col-span-6">
+                    <Label htmlFor={`description-${index}`}>Description</Label>
+                    <Input
+                      id={`description-${index}`}
+                      value={service.description}
+                      onChange={(e) => {
+                        const newServices = [...services];
+                        const serviceIndex = newServices.findIndex(s => s.id === service.id);
+                        newServices[serviceIndex].description = e.target.value;
+                        setServices(newServices);
+                      }}
+                    />
+                  </div>
+                  <div className="col-span-5 sm:col-span-2">
+                    <Label htmlFor={`unitPrice-${index}`}>Prix unitaire</Label>
+                    <Input
+                      id={`unitPrice-${index}`}
+                      type="number"
+                      value={service.unitPrice}
+                      onChange={(e) => {
+                        const newServices = [...services];
+                        const serviceIndex = newServices.findIndex(s => s.id === service.id);
+                        newServices[serviceIndex].unitPrice = parseInt(e.target.value);
+                        newServices[serviceIndex].amount = calculateAmount(
+                          newServices[serviceIndex].quantity,
+                          parseInt(e.target.value)
+                        );
+                        setServices(newServices);
+                      }}
+                    />
+                  </div>
+                  <div className="col-span-5 sm:col-span-2">
+                    <Label htmlFor={`amount-${index}`}>Montant</Label>
+                    <Input
+                      id={`amount-${index}`}
+                      type="number"
+                      value={service.amount}
+                      disabled
+                    />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive w-full"
+                      onClick={() => removeService(service.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              <div className="mt-6 space-y-4">
+                <div className="flex justify-end">
+                  <div className="w-full sm:w-1/3 space-y-2">
+                    <div className="flex justify-between">
+                      <span>Sous-total:</span>
+                      <span>{subtotal.toLocaleString('fr-FR')} €</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Label>Type de remise</Label>
+                        <Select
+                          value={discountType}
+                          onValueChange={(value: 'percentage' | 'fixed') => setDiscountType(value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentage">Pourcentage (%)</SelectItem>
+                            <SelectItem value="fixed">Montant fixe (€)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1">
+                        <Label>Valeur de la remise</Label>
+                        <Input
+                          type="number"
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(Number(e.target.value))}
+                          placeholder={discountType === 'percentage' ? '0%' : '0€'}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between font-bold">
+                      <span>Total:</span>
+                      <span>{totalAmount.toLocaleString('fr-FR')} €</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold mb-6">Conditions de paiement</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="deposit">Acompte (%)</Label>
+                <Input
+                  id="deposit"
+                  type="number"
+                  {...register("deposit")}
+                  placeholder="50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="deliveryTime">Délai de livraison</Label>
+                <Input
+                  id="deliveryTime"
+                  {...register("deliveryTime")}
+                  placeholder="3 semaines"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="paymentTerms">Conditions de paiement</Label>
+                <Input
+                  id="paymentTerms"
+                  {...register("paymentTerms")}
+                  placeholder="50% à la signature, 50% à la livraison"
+                />
+              </div>
+            </div>
+          </Card>
+        </div>
+      </ScrollArea>
+
+      <div className="flex justify-end space-x-4 sticky bottom-0 bg-background p-4 border-t">
+        <Button type="submit">{initialData ? 'Mettre à jour' : 'Créer'} le {type === 'quote' ? 'devis' : 'facture'}</Button>
+      </div>
+    </form>
+  );
+}
