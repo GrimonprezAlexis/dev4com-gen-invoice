@@ -3,12 +3,13 @@ import { getFirestore, collection, setDoc, updateDoc, deleteDoc, doc, getDocs, q
 import { Invoice, BillingInvoice, Company } from "@/app/types";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCfchoc_PjXrxNWuxvYXTQzt67K3lubSlQ",
-  authDomain: "dev4com-gen-invoice.firebaseapp.com",
-  projectId: "dev4com-gen-invoice",
-  storageBucket: "dev4com-gen-invoice.firebasestorage.app",
-  messagingSenderId: "502466470690",
-  appId: "1:502466470690:web:a9aff953f2d5f70b157b7b"
+  apiKey: "AIzaSyBUlU1esFktMUK0TgJIqCww7xkGCqTU3cs",
+  authDomain: "dev4com-f68e3.firebaseapp.com",
+  projectId: "dev4com-f68e3",
+  storageBucket: "dev4com-f68e3.firebasestorage.app",
+  messagingSenderId: "634868566361",
+  appId: "1:634868566361:web:ea1a3efef52666b455e448",
+  measurementId: "G-3D57QJVRBN"
 };
 
 // Initialize Firebase
