@@ -62,4 +62,5 @@ export interface BillingInvoice {
   notes?: string;
   createdAt: Date;
   quoteNumber: string;
+  showTax?: boolean;
 }
