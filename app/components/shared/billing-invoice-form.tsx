@@ -29,6 +29,7 @@ export function BillingInvoiceForm({
   onSave,
 }: BillingInvoiceFormProps) {
   const [taxRate, setTaxRate] = useState(20);
+  const [showTax, setShowTax] = useState<boolean>(taxRate > 0);
   const [currency, setCurrency] = useState<string>(
     invoice?.currency || quote.currency || "EUR"
   );
@@ -56,13 +57,16 @@ export function BillingInvoiceForm({
   });
 
   const onSubmit = (data: BillingInvoice) => {
-    const taxAmount = (data.totalAmount * taxRate) / 100;
+    const finalTaxRate = showTax ? taxRate : 0;
+    const taxAmount = (data.totalAmount * finalTaxRate) / 100;
     const totalWithTax = data.totalAmount + taxAmount;
     const newInvoice: BillingInvoice = {
       ...data,
       taxAmount,
       totalWithTax,
       currency,
+      taxRate: finalTaxRate,
+      showTax,
     };
     onSave(newInvoice);
   };
@@ -74,7 +78,7 @@ export function BillingInvoiceForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col gap-2">
         <Label htmlFor="currency">Devise</Label>
         <Select value={currency} onValueChange={(e) => onChangeCurrency(e)}>
           <SelectTrigger>
@@ -85,7 +89,24 @@ export function BillingInvoiceForm({
             <SelectItem value="CHF">Franc Suisse (CHF)</SelectItem>
           </SelectContent>
         </Select>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={showTax}
+            onChange={(e) => {
+              setShowTax(e.target.checked);
+              if (!e.target.checked) setTaxRate(0);
+              else setTaxRate(20); // Valeur par défaut, à adapter si besoin
+            }}
+          />
+          Afficher la TVA
+        </label>
       </div>
+
+      <div className="flex justify-end pt-4 border-t sticky bottom-0 bg-background">
+        <Button type="submit">Enregistrer la facture</Button>
+      </div>
+
       <ScrollArea className="h-[calc(100vh-300px)]">
         <div className="space-y-6 pr-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -149,10 +170,6 @@ export function BillingInvoiceForm({
           </div>
         </div>
       </ScrollArea>
-
-      <div className="flex justify-end pt-4 border-t sticky bottom-0 bg-background">
-        <Button type="submit">Générer la facture</Button>
-      </div>
     </form>
   );
 }

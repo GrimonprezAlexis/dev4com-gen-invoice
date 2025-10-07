@@ -352,20 +352,24 @@ export function DocumentPreview({ document, type }: DocumentPreviewProps) {
                     {formatNumber(document.totalAmount)} {currencySymbol}
                   </Text>
                 </View>
-                <View style={styles.totalRow}>
-                  <Text>TVA ({(document as BillingInvoice).taxRate}%):</Text>
-                  <Text>
-                    {formatNumber((document as BillingInvoice).taxAmount)}{" "}
-                    {currencySymbol}
-                  </Text>
-                </View>
-                <View style={styles.totalRowBold}>
-                  <Text>Total TTC:</Text>
-                  <Text>
-                    {formatNumber((document as BillingInvoice).totalWithTax)}{" "}
-                    {currencySymbol}
-                  </Text>
-                </View>
+                {(document as Invoice).showTax && (
+                  <View style={styles.totalRow}>
+                    <Text>TVA ({(document as BillingInvoice).taxRate}%):</Text>
+                    <Text>
+                      {formatNumber((document as BillingInvoice).taxAmount)}{" "}
+                      {currencySymbol}
+                    </Text>
+                  </View>
+                )}
+                {(document as Invoice).showTax && (
+                  <View style={styles.totalRowBold}>
+                    <Text>Total TTC:</Text>
+                    <Text>
+                      {formatNumber((document as BillingInvoice).totalWithTax)}{" "}
+                      {currencySymbol}
+                    </Text>
+                  </View>
+                )}
               </>
             )}
           </View>
