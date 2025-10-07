@@ -1,6 +1,14 @@
 "use client";
 
-import { Page, Text, View, Document, StyleSheet, PDFViewer, Image } from "@react-pdf/renderer";
+import {
+  Page,
+  Text,
+  View,
+  Document,
+  StyleSheet,
+  PDFViewer,
+  Image,
+} from "@react-pdf/renderer";
 import { Invoice, BillingInvoice } from "@/app/types";
 
 const styles = StyleSheet.create({
@@ -138,21 +146,24 @@ const styles = StyleSheet.create({
 
 interface DocumentPreviewProps {
   document: Invoice | BillingInvoice;
-  type: 'quote' | 'billing';
+  type: "quote" | "billing";
 }
 
 const formatNumber = (number: number) => {
-  return number.toLocaleString('fr-FR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-    useGrouping: true
-  }).replace(/\s/g, ' ');
+  return number
+    .toLocaleString("fr-FR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+      useGrouping: true,
+    })
+    .replace(/\s/g, " ");
 };
 
 export function DocumentPreview({ document, type }: DocumentPreviewProps) {
-  const isQuote = type === 'quote';
-  const title = isQuote ? 'DEVIS' : 'FACTURE';
+  const isQuote = type === "quote";
+  const title = isQuote ? "DEVIS" : "FACTURE";
 
+  const currencySymbol = document.currency === "CHF" ? "CHF" : "€";
   return (
     <PDFViewer className="w-full h-[80vh]">
       <Document>
@@ -166,7 +177,10 @@ export function DocumentPreview({ document, type }: DocumentPreviewProps) {
               </Text>
               {isQuote ? (
                 <Text style={styles.date}>
-                  Valable jusqu'au: {new Date((document as Invoice).validUntil).toLocaleDateString()}
+                  Valable jusqu&apos;au:{" "}
+                  {new Date(
+                    (document as Invoice).validUntil
+                  ).toLocaleDateString()}
                 </Text>
               ) : (
                 <Text style={styles.date}>
@@ -176,10 +190,11 @@ export function DocumentPreview({ document, type }: DocumentPreviewProps) {
             </View>
             <View style={styles.headerRight}>
               {document.company.logo && (
-                <Image 
-                  src={document.company.logo} 
+                <Image
+                  src={document.company.logo}
                   style={styles.logo}
                   cache={false}
+                  alt="Logo entreprise"
                 />
               )}
             </View>
@@ -190,13 +205,17 @@ export function DocumentPreview({ document, type }: DocumentPreviewProps) {
               <Text style={styles.sectionTitle}>Émetteur</Text>
               <Text style={styles.companyInfo}>{document.company.name}</Text>
               <Text style={styles.companyInfo}>{document.company.address}</Text>
-              <Text style={styles.companyInfo}>SIREN: {document.company.siren}</Text>
+              <Text style={styles.companyInfo}>
+                SIREN: {document.company.siren}
+              </Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.sectionTitle}>Client</Text>
               <Text style={styles.companyInfo}>{document.client.name}</Text>
               <Text style={styles.companyInfo}>{document.client.address}</Text>
-              <Text style={styles.companyInfo}>SIREN: {document.client.siren}</Text>
+              <Text style={styles.companyInfo}>
+                SIREN: {document.client.siren}
+              </Text>
             </View>
           </View>
 
@@ -212,63 +231,140 @@ export function DocumentPreview({ document, type }: DocumentPreviewProps) {
               <View key={service.id} style={styles.tableRow}>
                 <Text style={styles.col1}>{service.quantity}</Text>
                 <Text style={styles.col2}>{service.description}</Text>
-                <Text style={styles.col3}>{formatNumber(service.unitPrice)} €</Text>
-                <Text style={styles.col4}>{formatNumber(service.amount)} €</Text>
+                <Text style={styles.col3}>
+                  {formatNumber(service.unitPrice)} {currencySymbol}
+                </Text>
+                <Text style={styles.col4}>
+                  {formatNumber(service.amount)} {currencySymbol}
+                </Text>
               </View>
             ))}
           </View>
 
           <View style={styles.totalsSection}>
             {isQuote ? (
-              <>
-                <View style={styles.totalRow}>
-                  <Text>Sous-total:</Text>
-                  <Text>{formatNumber((document as Invoice).subtotal)} €</Text>
-                </View>
-
-                {(document as Invoice).discount.value > 0 && (
+              (document as Invoice).showTax ? (
+                <>
                   <View style={styles.totalRow}>
+                    <Text>Montant HT :</Text>
                     <Text>
-                      Remise ({(document as Invoice).discount.type === 'percentage' ? '%' : '€'}):
-                    </Text>
-                    <Text style={styles.highlight}>
-                      -{(document as Invoice).discount.type === 'percentage'
-                        ? `${(document as Invoice).discount.value}%`
-                        : `${formatNumber((document as Invoice).discount.value)} €`}
+                      {formatNumber((document as Invoice).subtotal)}{" "}
+                      {currencySymbol}
                     </Text>
                   </View>
-                )}
-
-                <View style={styles.totalRowBold}>
-                  <Text>Total:</Text>
-                  <Text>{formatNumber(document.totalAmount)} €</Text>
-                </View>
-
-                <View style={styles.totalRow}>
-                  <Text>Acompte ({(document as Invoice).deposit}%):</Text>
-                  <Text>
-                    {formatNumber(document.totalAmount * (document as Invoice).deposit / 100)} €
-                  </Text>
-                </View>
-
-                <View style={styles.totalRow}>
-                  <Text>Solde:</Text>
-                  <Text>{formatNumber((document as Invoice).remainingBalance)} €</Text>
-                </View>
-              </>
+                  {(document as Invoice).discount.value > 0 && (
+                    <View style={styles.totalRow}>
+                      <Text>Remise :</Text>
+                      <Text>
+                        {(document as Invoice).discount.type === "percentage"
+                          ? `${(document as Invoice).discount.value}%`
+                          : `${formatNumber(
+                              (document as Invoice).discount.value
+                            )} ${currencySymbol}`}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.totalRow}>
+                    <Text>Total HT :</Text>
+                    <Text>
+                      {formatNumber(document.totalAmount)} {currencySymbol}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRow}>
+                    <Text>
+                      TVA ({document.currency === "EUR" ? "20" : "8.1"}%):
+                    </Text>
+                    <Text>
+                      {formatNumber(
+                        document.totalAmount *
+                          (document.currency === "EUR" ? 0.2 : 0.081)
+                      )}{" "}
+                      {currencySymbol}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRowBold}>
+                    <Text>Total TTC :</Text>
+                    <Text>
+                      {formatNumber(
+                        document.totalAmount *
+                          (1 + (document.currency === "EUR" ? 0.2 : 0.081))
+                      )}{" "}
+                      {currencySymbol}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRow}>
+                    <Text>Acompte ({(document as Invoice).deposit}%):</Text>
+                    <Text>
+                      {formatNumber(
+                        (document.totalAmount * (document as Invoice).deposit) /
+                          100
+                      )}{" "}
+                      {currencySymbol}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRow}>
+                    <Text>Solde:</Text>
+                    <Text>
+                      {formatNumber((document as Invoice).remainingBalance)}{" "}
+                      {currencySymbol}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.totalRow}>
+                    <Text>Montant :</Text>
+                    <Text>
+                      {formatNumber((document as Invoice).subtotal)}{" "}
+                      {currencySymbol}
+                    </Text>
+                  </View>
+                  {(document as Invoice).discount.value > 0 && (
+                    <View style={styles.totalRow}>
+                      <Text>Remise :</Text>
+                      <Text>
+                        {(document as Invoice).discount.type === "percentage"
+                          ? `${(document as Invoice).discount.value}%`
+                          : `${formatNumber(
+                              (document as Invoice).discount.value
+                            )} ${currencySymbol}`}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.totalRow}>
+                    <Text>Total Remise :</Text>
+                    <Text>
+                      {formatNumber(document.totalAmount)} {currencySymbol}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRowBold}>
+                    <Text style={{ fontSize: 8 }}>
+                      TVA non applicable, art. 293 B CGI
+                    </Text>
+                  </View>
+                </>
+              )
             ) : (
               <>
                 <View style={styles.totalRow}>
                   <Text>Sous-total:</Text>
-                  <Text>{formatNumber(document.totalAmount)} €</Text>
+                  <Text>
+                    {formatNumber(document.totalAmount)} {currencySymbol}
+                  </Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text>TVA ({(document as BillingInvoice).taxRate}%):</Text>
-                  <Text>{formatNumber((document as BillingInvoice).taxAmount)} €</Text>
+                  <Text>
+                    {formatNumber((document as BillingInvoice).taxAmount)}{" "}
+                    {currencySymbol}
+                  </Text>
                 </View>
                 <View style={styles.totalRowBold}>
                   <Text>Total TTC:</Text>
-                  <Text>{formatNumber((document as BillingInvoice).totalWithTax)} €</Text>
+                  <Text>
+                    {formatNumber((document as BillingInvoice).totalWithTax)}{" "}
+                    {currencySymbol}
+                  </Text>
                 </View>
               </>
             )}
@@ -297,12 +393,14 @@ export function DocumentPreview({ document, type }: DocumentPreviewProps) {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              {isQuote ? (
-                `Ce devis est valable jusqu'au ${new Date((document as Invoice).validUntil).toLocaleDateString()}. 
+              {isQuote
+                ? `Ce devis est valable jusqu'au ${new Date(
+                    (document as Invoice).validUntil
+                  ).toLocaleDateString()}. 
                 Pour toute question, n'hésitez pas à nous contacter.`
-              ) : (
-                `Date d'échéance : ${new Date((document as BillingInvoice).dueDate).toLocaleDateString()}`
-              )}
+                : `Date d'échéance : ${new Date(
+                    (document as BillingInvoice).dueDate
+                  ).toLocaleDateString()}`}
             </Text>
           </View>
         </Page>

@@ -33,6 +33,8 @@ export interface Invoice {
   deliveryTime: string;
   status: "draft" | "sent" | "accepted" | "rejected";
   createdAt: Date;
+  currency?: string;
+  showTax?: boolean;
   isTemplate?: boolean;
   templateName?: string;
   templateDescription?: string;
@@ -53,6 +55,7 @@ export interface BillingInvoice {
   taxAmount: number;
   totalAmount: number;
   totalWithTax: number;
+  currency?: string;
   paymentStatus: "pending" | "partial" | "paid";
   paymentDate?: string;
   paymentMethod?: string;
