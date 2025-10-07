@@ -7,9 +7,9 @@ import {
   Document,
   StyleSheet,
   PDFViewer,
-  Image,
 } from "@react-pdf/renderer";
 import { Invoice, BillingInvoice } from "@/app/types";
+import Image from "next/image";
 
 const styles = StyleSheet.create({
   page: {
@@ -35,8 +35,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 150,
     height: 60,
-    objectFit: "contain",
-    objectPosition: "right",
   },
   title: {
     fontSize: 24,
@@ -193,8 +191,7 @@ export function DocumentPreview({ document, type }: DocumentPreviewProps) {
                 <Image
                   src={document.company.logo}
                   style={styles.logo}
-                  cache={false}
-                  alt="Logo entreprise"
+                  alt="Logo de l'entreprise"
                 />
               )}
             </View>
