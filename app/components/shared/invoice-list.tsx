@@ -123,7 +123,8 @@ export function InvoiceList({
         </div>
         <div className="text-left sm:text-right w-full sm:w-auto">
           <p className="font-bold">
-            {invoice.totalAmount.toLocaleString("fr-FR")} €
+            {invoice.totalAmount.toLocaleString("fr-FR")}{" "}
+            {invoice.currency === "CHF" ? "CHF" : "€"}
           </p>
           {invoice.discount?.value > 0 && (
             <p className="text-sm text-green-600">

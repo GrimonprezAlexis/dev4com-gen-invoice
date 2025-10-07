@@ -3,11 +3,19 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BillingInvoice, Invoice } from "@/app/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { on } from "events";
 
 interface BillingInvoiceFormProps {
   quote: Invoice;
@@ -21,7 +29,10 @@ export function BillingInvoiceForm({
   onSave,
 }: BillingInvoiceFormProps) {
   const [taxRate, setTaxRate] = useState(20);
-  const { register, handleSubmit } = useForm<BillingInvoice>({
+  const [currency, setCurrency] = useState<string>(
+    invoice?.currency || quote.currency || "EUR"
+  );
+  const { register, handleSubmit, setValue } = useForm<BillingInvoice>({
     defaultValues: invoice || {
       id: crypto.randomUUID(),
       company: quote.company,
@@ -40,24 +51,41 @@ export function BillingInvoiceForm({
       totalWithTax: quote.totalAmount * 1.2,
       taxAmount: quote.totalAmount * 0.2,
       createdAt: new Date(),
+      currency: quote.currency || "EUR",
     },
   });
 
   const onSubmit = (data: BillingInvoice) => {
     const taxAmount = (data.totalAmount * taxRate) / 100;
     const totalWithTax = data.totalAmount + taxAmount;
-
     const newInvoice: BillingInvoice = {
       ...data,
       taxAmount,
       totalWithTax,
+      currency,
     };
-
     onSave(newInvoice);
+  };
+
+  const onChangeCurrency = (value: string) => {
+    setCurrency(value);
+    setValue("currency", value);
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="mb-4">
+        <Label htmlFor="currency">Devise</Label>
+        <Select value={currency} onValueChange={(e) => onChangeCurrency(e)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner la devise" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="EUR">Euro (€)</SelectItem>
+            <SelectItem value="CHF">Franc Suisse (CHF)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <ScrollArea className="h-[calc(100vh-300px)]">
         <div className="space-y-6 pr-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -75,11 +103,11 @@ export function BillingInvoiceForm({
               />
             </div>
             <div>
-              <Label htmlFor="date">Date d'émission</Label>
+              <Label htmlFor="date">Date d&apos;émission</Label>
               <Input id="date" type="date" {...register("date")} />
             </div>
             <div>
-              <Label htmlFor="dueDate">Date d'échéance</Label>
+              <Label htmlFor="dueDate">Date d&apos;échéance</Label>
               <Input id="dueDate" type="date" {...register("dueDate")} />
             </div>
           </div>
@@ -97,13 +125,16 @@ export function BillingInvoiceForm({
           <div className="bg-muted p-4 rounded-lg space-y-2">
             <div className="flex justify-between">
               <span>Sous-total:</span>
-              <span>{quote.totalAmount.toLocaleString("fr-FR")} €</span>
+              <span>
+                {quote.totalAmount.toLocaleString("fr-FR")}{" "}
+                {currency === "EUR" ? "€" : "CHF"}
+              </span>
             </div>
             <div className="flex justify-between">
               <span>TVA ({taxRate}%):</span>
               <span>
                 {((quote.totalAmount * taxRate) / 100).toLocaleString("fr-FR")}{" "}
-                €
+                {currency === "EUR" ? "€" : "CHF"}
               </span>
             </div>
             <div className="flex justify-between font-bold">
@@ -112,7 +143,7 @@ export function BillingInvoiceForm({
                 {(quote.totalAmount * (1 + taxRate / 100)).toLocaleString(
                   "fr-FR"
                 )}{" "}
-                €
+                {currency === "EUR" ? "€" : "CHF"}
               </span>
             </div>
           </div>

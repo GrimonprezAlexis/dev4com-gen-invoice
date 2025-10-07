@@ -7,7 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Invoice, Service, Company } from "@/app/types";
 import { TemplateSelector } from "../template-selector";
@@ -15,18 +21,50 @@ import { TemplateSelector } from "../template-selector";
 interface InvoiceFormProps {
   onSave: (invoice: Invoice) => void;
   initialData?: Invoice | null;
-  type: 'quote' | 'billing';
+  type: "quote" | "billing";
   companyInfo?: Company | null;
 }
 
-export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceFormProps) {
+export function InvoiceForm({
+  onSave,
+  initialData,
+  type,
+  companyInfo,
+}: InvoiceFormProps) {
   const [services, setServices] = useState<Service[]>([
-    { id: crypto.randomUUID(), quantity: 1, description: "", unitPrice: 0, amount: 0 },
+    {
+      id: crypto.randomUUID(),
+      quantity: 1,
+      description: "",
+      unitPrice: 0,
+      amount: 0,
+    },
   ]);
   const [subtotal, setSubtotal] = useState(0);
-  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">(
+    "percentage"
+  );
   const [discountValue, setDiscountValue] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [currency, setCurrency] = useState<string>(
+    initialData?.currency || "EUR"
+  );
+  const [showTax, setShowTax] = useState<boolean>(
+    initialData?.showTax ?? false
+  );
+
+  // Synchronise la devise si on édite un devis existant
+  useEffect(() => {
+    if (initialData?.currency && initialData.currency !== currency) {
+      setCurrency(initialData.currency);
+    }
+  }, [initialData?.currency]);
+  // Ajout du calcul TTC
+  const [taxRate, setTaxRate] = useState<number>(
+    currency === "EUR" ? 20 : currency === "CHF" ? 8.1 : 0
+  );
+
+  const totalTTC = totalAmount * (1 + taxRate / 100);
 
   const { register, handleSubmit, reset, setValue } = useForm<Invoice>({
     defaultValues: initialData || {
@@ -39,9 +77,9 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
       deposit: 50,
       services: [],
       discount: {
-        type: 'percentage',
-        value: 0
-      }
+        type: "percentage",
+        value: 0,
+      },
     },
   });
 
@@ -67,7 +105,7 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
     setValue("deposit", template.deposit);
     setValue("deliveryTime", template.deliveryTime);
     setValue("paymentTerms", template.paymentTerms);
-    
+
     // Keep current company info when using a template
     if (companyInfo) {
       setValue("company", companyInfo);
@@ -75,11 +113,20 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
   };
 
   const addService = () => {
-    setServices([...services, { id: crypto.randomUUID(), quantity: 1, description: "", unitPrice: 0, amount: 0 }]);
+    setServices([
+      ...services,
+      {
+        id: crypto.randomUUID(),
+        quantity: 1,
+        description: "",
+        unitPrice: 0,
+        amount: 0,
+      },
+    ]);
   };
 
   const removeService = (id: string) => {
-    setServices(services.filter(service => service.id !== id));
+    setServices(services.filter((service) => service.id !== id));
   };
 
   const calculateAmount = (quantity: number, unitPrice: number) => {
@@ -87,11 +134,14 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
   };
 
   useEffect(() => {
-    const newSubtotal = services.reduce((sum, service) => sum + service.amount, 0);
+    const newSubtotal = services.reduce(
+      (sum, service) => sum + service.amount,
+      0
+    );
     setSubtotal(newSubtotal);
 
     let discount = 0;
-    if (discountType === 'percentage') {
+    if (discountType === "percentage") {
       discount = (newSubtotal * discountValue) / 100;
     } else {
       discount = discountValue;
@@ -102,45 +152,97 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
   }, [services, discountType, discountValue]);
 
   const onSubmit = (data: Invoice) => {
+    const year = new Date().getFullYear();
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
     const invoice: Invoice = {
       ...data,
       id: initialData?.id || crypto.randomUUID(),
-      number: initialData?.number || `${type === 'quote' ? 'DEV' : 'FAC'}-${Date.now()}`,
+      number:
+        initialData?.number ||
+        `${type === "quote" ? "DEV" : "FAC"}-${year}-${randomNum}`,
       date: initialData?.date || new Date().toISOString(),
-      validUntil: initialData?.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      validUntil:
+        initialData?.validUntil ||
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       services,
       subtotal,
       discount: {
         type: discountType,
-        value: discountValue
+        value: discountValue,
       },
       totalAmount,
       remainingBalance: totalAmount * (1 - data.deposit / 100),
       createdAt: initialData?.createdAt || new Date(),
       company: companyInfo || data.company, // Use companyInfo if available
+      showTax,
     };
 
     onSave(invoice);
     if (!initialData) {
       reset();
-      setServices([{ id: crypto.randomUUID(), quantity: 1, description: "", unitPrice: 0, amount: 0 }]);
+      setServices([
+        {
+          id: crypto.randomUUID(),
+          quantity: 1,
+          description: "",
+          unitPrice: 0,
+          amount: 0,
+        },
+      ]);
       setDiscountValue(0);
+    }
+  };
+
+  const onChangeCurrency = (value: string) => {
+    setCurrency(value);
+    setValue("currency", value);
+
+    if (currency === "EUR") {
+      setTaxRate(20);
+    } else if (currency === "CHF") {
+      setTaxRate(8.1);
+    } else {
+      setTaxRate(0);
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center mb-4">
+        <div className="w-1/3">
+          <Label htmlFor="currency">Devise</Label>
+          <Select value={currency} onValueChange={(e) => onChangeCurrency(e)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner la devise" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="EUR">Euro (€)</SelectItem>
+              <SelectItem value="CHF">Franc Suisse (CHF)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <TemplateSelector
           onSelectTemplate={handleTemplateSelect}
           currentInvoice={initialData || undefined}
         />
       </div>
 
+      <div className="mb-4">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={showTax}
+            onChange={(e) => setShowTax(e.target.checked)}
+          />
+          Afficher la TVA
+        </label>
+      </div>
       <ScrollArea className="h-[calc(100vh-200px)] pr-4">
         <div className="space-y-8">
           <Card className="p-4 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-bold mb-6">Informations du client</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-6">
+              Informations du client
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="clientName">Nom de l'entreprise</Label>
@@ -180,7 +282,10 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
 
             <div className="space-y-4">
               {services.map((service, index) => (
-                <div key={service.id} className="grid grid-cols-12 gap-2 sm:gap-4 items-end">
+                <div
+                  key={service.id}
+                  className="grid grid-cols-12 gap-2 sm:gap-4 items-end"
+                >
                   <div className="col-span-2 sm:col-span-1">
                     <Label htmlFor={`quantity-${index}`}>Qté</Label>
                     <Input
@@ -189,8 +294,12 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
                       value={service.quantity}
                       onChange={(e) => {
                         const newServices = [...services];
-                        const serviceIndex = newServices.findIndex(s => s.id === service.id);
-                        newServices[serviceIndex].quantity = parseInt(e.target.value);
+                        const serviceIndex = newServices.findIndex(
+                          (s) => s.id === service.id
+                        );
+                        newServices[serviceIndex].quantity = parseInt(
+                          e.target.value
+                        );
                         newServices[serviceIndex].amount = calculateAmount(
                           parseInt(e.target.value),
                           newServices[serviceIndex].unitPrice
@@ -206,7 +315,9 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
                       value={service.description}
                       onChange={(e) => {
                         const newServices = [...services];
-                        const serviceIndex = newServices.findIndex(s => s.id === service.id);
+                        const serviceIndex = newServices.findIndex(
+                          (s) => s.id === service.id
+                        );
                         newServices[serviceIndex].description = e.target.value;
                         setServices(newServices);
                       }}
@@ -220,8 +331,12 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
                       value={service.unitPrice}
                       onChange={(e) => {
                         const newServices = [...services];
-                        const serviceIndex = newServices.findIndex(s => s.id === service.id);
-                        newServices[serviceIndex].unitPrice = parseInt(e.target.value);
+                        const serviceIndex = newServices.findIndex(
+                          (s) => s.id === service.id
+                        );
+                        newServices[serviceIndex].unitPrice = parseInt(
+                          e.target.value
+                        );
                         newServices[serviceIndex].amount = calculateAmount(
                           newServices[serviceIndex].quantity,
                           parseInt(e.target.value)
@@ -257,23 +372,66 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
                 <div className="flex justify-end">
                   <div className="w-full sm:w-1/3 space-y-2">
                     <div className="flex justify-between">
-                      <span>Sous-total:</span>
-                      <span>{subtotal.toLocaleString('fr-FR')} €</span>
+                      <span>Montant HT :</span>
+                      <span>
+                        {subtotal.toLocaleString("fr-FR")}{" "}
+                        {currency === "EUR" ? "€" : "CHF"}
+                      </span>
                     </div>
-
-                    <div className="flex gap-2">
+                    <div className="flex justify-between">
+                      <span>Remise :</span>
+                      <span>
+                        {discountType === "percentage"
+                          ? `${discountValue}%`
+                          : `${discountValue.toLocaleString("fr-FR")} ${
+                              currency === "EUR" ? "€" : "CHF"
+                            }`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total HT :</span>
+                      <span>
+                        {totalAmount.toLocaleString("fr-FR")}{" "}
+                        {currency === "EUR" ? "€" : "CHF"}
+                      </span>
+                    </div>
+                    {taxRate > 0 && (
+                      <div className="flex justify-between">
+                        <span>TVA ({taxRate}%) :</span>
+                        <span>
+                          {((totalAmount * taxRate) / 100).toLocaleString(
+                            "fr-FR"
+                          )}{" "}
+                          {currency === "EUR" ? "€" : "CHF"}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold">
+                      <span>Total TTC :</span>
+                      <span>
+                        {totalTTC.toLocaleString("fr-FR")}{" "}
+                        {currency === "EUR" ? "€" : "CHF"}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 mt-2">
                       <div className="flex-1">
                         <Label>Type de remise</Label>
                         <Select
                           value={discountType}
-                          onValueChange={(value: 'percentage' | 'fixed') => setDiscountType(value)}
+                          onValueChange={(value: "percentage" | "fixed") =>
+                            setDiscountType(value)
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="percentage">Pourcentage (%)</SelectItem>
-                            <SelectItem value="fixed">Montant fixe (€)</SelectItem>
+                            <SelectItem value="percentage">
+                              Pourcentage (%)
+                            </SelectItem>
+                            <SelectItem value="fixed">
+                              Montant fixe ({currency === "EUR" ? "€" : "CHF"})
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -282,15 +440,16 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
                         <Input
                           type="number"
                           value={discountValue}
-                          onChange={(e) => setDiscountValue(Number(e.target.value))}
-                          placeholder={discountType === 'percentage' ? '0%' : '0€'}
+                          onChange={(e) =>
+                            setDiscountValue(Number(e.target.value))
+                          }
+                          placeholder={
+                            discountType === "percentage"
+                              ? "0%"
+                              : `0${currency === "EUR" ? "€" : "CHF"}`
+                          }
                         />
                       </div>
-                    </div>
-
-                    <div className="flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>{totalAmount.toLocaleString('fr-FR')} €</span>
                     </div>
                   </div>
                 </div>
@@ -299,7 +458,9 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
           </Card>
 
           <Card className="p-4 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-bold mb-6">Conditions de paiement</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-6">
+              Conditions de paiement
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="deposit">Acompte (%)</Label>
@@ -332,7 +493,10 @@ export function InvoiceForm({ onSave, initialData, type, companyInfo }: InvoiceF
       </ScrollArea>
 
       <div className="flex justify-end space-x-4 sticky bottom-0 bg-background p-4 border-t">
-        <Button type="submit">{initialData ? 'Mettre à jour' : 'Créer'} le {type === 'quote' ? 'devis' : 'facture'}</Button>
+        <Button type="submit">
+          {initialData ? "Mettre à jour" : "Créer"} le{" "}
+          {type === "quote" ? "devis" : "facture"}
+        </Button>
       </div>
     </form>
   );
