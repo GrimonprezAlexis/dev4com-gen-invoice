@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Mail, Check, X, Receipt, Trash2 } from "lucide-react";
+import { Eye, Pencil, Mail, Check, X, Receipt, Trash2, Download } from "lucide-react";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { PDFDocument } from "./document-preview";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -177,6 +179,25 @@ export function InvoiceList({
               >
                 <Pencil className="w-4 h-4 mr-2" />
                 Modifier
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <PDFDownloadLink
+                  document={
+                    <PDFDocument
+                      document={invoice}
+                      type={type}
+                    />
+                  }
+                  fileName={`${type === "quote" ? "Devis" : "Facture"}_${invoice.number}.pdf`}
+                  className="flex items-center w-full text-green-600"
+                >
+                  {({ loading }) => (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      {loading ? "Préparation..." : `Télécharger ${type === "quote" ? "le devis" : "la facture"}`}
+                    </>
+                  )}
+                </PDFDownloadLink>
               </DropdownMenuItem>
               <Dialog>
                 {type === "quote" ? (

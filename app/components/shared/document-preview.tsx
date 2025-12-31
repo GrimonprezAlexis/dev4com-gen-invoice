@@ -7,6 +7,7 @@ import {
   Document,
   StyleSheet,
   PDFViewer,
+  PDFDownloadLink,
 } from "@react-pdf/renderer";
 import { Invoice, BillingInvoice } from "@/app/types";
 import Image from "next/image";
@@ -157,14 +158,14 @@ const formatNumber = (number: number) => {
     .replace(/\s/g, " ");
 };
 
-export function DocumentPreview({ document, type }: DocumentPreviewProps) {
+// Separate Document component for reuse in downloads
+export const PDFDocument = ({ document, type }: DocumentPreviewProps) => {
   const isQuote = type === "quote";
   const title = isQuote ? "DEVIS" : "FACTURE";
-
   const currencySymbol = document.currency === "CHF" ? "CHF" : "€";
+
   return (
-    <PDFViewer className="w-full h-[80vh]">
-      <Document>
+    <Document>
         <Page size="A4" style={styles.page}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -341,32 +342,80 @@ export function DocumentPreview({ document, type }: DocumentPreviewProps) {
                   </View>
                 </>
               )
-            ) : (
+            ) : (document as BillingInvoice).showTax ? (
               <>
                 <View style={styles.totalRow}>
-                  <Text>Sous-total:</Text>
+                  <Text>Montant HT :</Text>
+                  <Text>
+                    {formatNumber((document as BillingInvoice).subtotal)}{" "}
+                    {currencySymbol}
+                  </Text>
+                </View>
+                {(document as BillingInvoice).discount.value > 0 && (
+                  <View style={styles.totalRow}>
+                    <Text>Remise :</Text>
+                    <Text>
+                      {(document as BillingInvoice).discount.type === "percentage"
+                        ? `${(document as BillingInvoice).discount.value}%`
+                        : `${formatNumber(
+                            (document as BillingInvoice).discount.value
+                          )} ${currencySymbol}`}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.totalRow}>
+                  <Text>Total HT :</Text>
                   <Text>
                     {formatNumber(document.totalAmount)} {currencySymbol}
                   </Text>
                 </View>
-                {(document as Invoice).showTax && (
+                <View style={styles.totalRow}>
+                  <Text>TVA ({(document as BillingInvoice).taxRate}%):</Text>
+                  <Text>
+                    {formatNumber((document as BillingInvoice).taxAmount)}{" "}
+                    {currencySymbol}
+                  </Text>
+                </View>
+                <View style={styles.totalRowBold}>
+                  <Text>Total TTC:</Text>
+                  <Text>
+                    {formatNumber((document as BillingInvoice).totalWithTax)}{" "}
+                    {currencySymbol}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.totalRow}>
+                  <Text>Montant :</Text>
+                  <Text>
+                    {formatNumber((document as BillingInvoice).subtotal)}{" "}
+                    {currencySymbol}
+                  </Text>
+                </View>
+                {(document as BillingInvoice).discount.value > 0 && (
                   <View style={styles.totalRow}>
-                    <Text>TVA ({(document as BillingInvoice).taxRate}%):</Text>
+                    <Text>Remise :</Text>
                     <Text>
-                      {formatNumber((document as BillingInvoice).taxAmount)}{" "}
-                      {currencySymbol}
+                      {(document as BillingInvoice).discount.type === "percentage"
+                        ? `${(document as BillingInvoice).discount.value}%`
+                        : `${formatNumber(
+                            (document as BillingInvoice).discount.value
+                          )} ${currencySymbol}`}
                     </Text>
                   </View>
                 )}
-                {(document as Invoice).showTax && (
-                  <View style={styles.totalRowBold}>
-                    <Text>Total TTC:</Text>
-                    <Text>
-                      {formatNumber((document as BillingInvoice).totalWithTax)}{" "}
-                      {currencySymbol}
-                    </Text>
-                  </View>
-                )}
+                <View style={styles.totalRow}>
+                  <Text>Total Remise :</Text>
+                  <Text>
+                    {formatNumber(document.totalAmount)} {currencySymbol}
+                  </Text>
+                </View>
+                <View style={styles.totalRowBold}>
+                  <Text style={{ fontSize: 8 }}>
+                    TVA non applicable, art. 293 B CGI
+                  </Text>
+                </View>
               </>
             )}
           </View>
@@ -406,6 +455,14 @@ export function DocumentPreview({ document, type }: DocumentPreviewProps) {
           </View>
         </Page>
       </Document>
+  );
+};
+
+// Preview component that wraps the PDF document in a viewer
+export function DocumentPreview(props: DocumentPreviewProps) {
+  return (
+    <PDFViewer className="w-full h-[80vh]">
+      <PDFDocument {...props} />
     </PDFViewer>
   );
 }
