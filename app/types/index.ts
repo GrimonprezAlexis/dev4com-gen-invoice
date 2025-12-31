@@ -51,6 +51,10 @@ export interface BillingInvoice {
   client: Company;
   services: Service[];
   subtotal: number;
+  discount: {
+    type: "percentage" | "fixed";
+    value: number;
+  };
   taxRate: number;
   taxAmount: number;
   totalAmount: number;
