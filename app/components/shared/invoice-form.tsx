@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Wand2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Invoice, Service, Company } from "@/app/types";
 import { TemplateSelector } from "../template-selector";
+import { AIRewriteDialog } from "../ai-rewrite-dialog";
 
 interface InvoiceFormProps {
   onSave: (invoice: Invoice) => void;
@@ -52,6 +53,7 @@ export function InvoiceForm({
   const [showTax, setShowTax] = useState<boolean>(
     initialData?.showTax ?? false
   );
+  const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
 
   // Synchronise la devise si on édite un devis existant
   useEffect(() => {
@@ -109,6 +111,25 @@ export function InvoiceForm({
     // Keep current company info when using a template
     if (companyInfo) {
       setValue("company", companyInfo);
+    }
+  };
+
+  const handleApplyAIContent = (data: any) => {
+    // Appliquer les services générés
+    if (data.services && Array.isArray(data.services)) {
+      const newServices = data.services.map((service: any) => ({
+        id: crypto.randomUUID(),
+        description: service.description || "",
+        quantity: service.quantity || 1,
+        unitPrice: service.unitPrice || 0,
+        amount: (service.quantity || 1) * (service.unitPrice || 0),
+      }));
+      setServices(newServices);
+    }
+
+    // Appliquer les conditions de paiement
+    if (data.paymentTerms) {
+      setValue("paymentTerms", data.paymentTerms);
     }
   };
 
@@ -272,12 +293,23 @@ export function InvoiceForm({
           </Card>
 
           <Card className="p-4 sm:p-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
               <h2 className="text-xl sm:text-2xl font-bold">Services</h2>
-              <Button type="button" onClick={addService} variant="outline">
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un service
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={() => setIsAIDialogOpen(true)}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  Rédigé par IA
+                </Button>
+                <Button type="button" onClick={addService} variant="outline">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ajouter un service
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -498,6 +530,24 @@ export function InvoiceForm({
           {type === "quote" ? "devis" : "facture"}
         </Button>
       </div>
+
+      <AIRewriteDialog
+        services={services}
+        catalogData={{
+          company: "Dev4Ecom",
+          currency: currency,
+          strategy_type: "Service as a Product (SaaP)",
+          target_market: "TPE, PME, Artisans, Indépendants",
+        }}
+        quoteData={{
+          client: initialData?.client,
+          totalAmount,
+          services,
+        }}
+        onApply={handleApplyAIContent}
+        isOpen={isAIDialogOpen}
+        onOpenChange={setIsAIDialogOpen}
+      />
     </form>
   );
 }

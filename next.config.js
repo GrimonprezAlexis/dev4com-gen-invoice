@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // Enlever output: 'export' pour permettre les routes API dynamiques
+  // output: 'export' n'est pas compatible avec les routes API dynamiques comme generate-quote-content
   eslint: {
     ignoreDuringBuilds: true,
   },
