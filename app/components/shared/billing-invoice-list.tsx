@@ -35,6 +35,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
 } from "@/components/ui/dialog";
 import { BillingInvoice } from "@/app/types";
 import { DateRangePicker } from "../date-range-picker";
@@ -218,12 +219,10 @@ export function BillingInvoiceList({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <Dialog>
-                <BillingInvoiceEditDialog
-                  invoice={invoice}
-                  onUpdate={onUpdate}
-                />
-              </Dialog>
+              <BillingInvoiceEditDialog
+                invoice={invoice}
+                onUpdate={onUpdate}
+              />
               <DropdownMenuItem asChild>
                 <PDFDownloadLink
                   document={
@@ -234,21 +233,18 @@ export function BillingInvoiceList({
                   }
                   fileName={`Facture_${invoice.number}.pdf`}
                   className="flex items-center w-full text-green-600"
-                >
-                  {({ loading }) => (
+                  children={(({ loading }: { loading: any }) => (
                     <>
                       <Download className="w-4 h-4 mr-2" />
                       {loading ? "Préparation..." : "Télécharger la facture"}
                     </>
-                  )}
-                </PDFDownloadLink>
-              </DropdownMenuItem>
-              <Dialog>
-                <BillingEmailDialog
-                  invoice={invoice}
-                  onEmailSent={() => onSend?.(invoice)}
+                  )) as any}
                 />
-              </Dialog>
+              </DropdownMenuItem>
+              <BillingEmailDialog
+                invoice={invoice}
+                onEmailSent={() => onSend?.(invoice)}
+              />
               <DropdownMenuItem
                 onClick={() => handleMarkAsPaid(invoice)}
                 className="text-green-600"
@@ -420,20 +416,39 @@ export function BillingInvoiceList({
       </div>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogTitle>Confirmer la suppression</DialogTitle>
-          <DialogDescription>
-            Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est
-            irréversible.
-          </DialogDescription>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-950">
+                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <DialogTitle>Confirmer la suppression</DialogTitle>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-800 dark:text-red-200">
+                Êtes-vous sûr de vouloir supprimer cette facture ?
+              </p>
+              <p className="text-xs text-red-700 dark:text-red-300 mt-2 font-semibold">
+                ⚠️ Cette action est irréversible.
+              </p>
+            </div>
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
+              className="flex-1"
             >
               Annuler
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="flex-1"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
               Supprimer
             </Button>
           </DialogFooter>

@@ -63,7 +63,7 @@ export function CompanySettings() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
-        setCompany(prev => ({ ...prev, logo: dataUrl }));
+        setCompany(prev => ({ ...prev, logo: dataUrl, logoSize: "medium" }));
       };
       reader.readAsDataURL(file);
     }
@@ -162,6 +162,25 @@ export function CompanySettings() {
                 Format accepté : JPG, PNG, GIF (max 5MB)
               </p>
             </div>
+            {company.logo && (
+              <div className="space-y-2">
+                <Label>Taille du logo</Label>
+                <div className="flex gap-2">
+                  {(["small", "medium", "large"] as const).map((size) => (
+                    <Button
+                      key={size}
+                      type="button"
+                      variant={company.logoSize === size ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCompany({ ...company, logoSize: size })}
+                      className="capitalize"
+                    >
+                      {size === "small" ? "Petit" : size === "medium" ? "Moyen" : "Grand"}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex justify-end">

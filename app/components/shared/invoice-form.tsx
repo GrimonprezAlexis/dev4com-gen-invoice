@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Plus, Trash2, Wand2 } from "lucide-react";
+import { Plus, Trash2, Wand2, DollarSign, Tag, TrendingDown, Package, FileText, Hash, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -260,66 +261,116 @@ export function InvoiceForm({
       </div>
       <ScrollArea className="h-[calc(100vh-200px)] pr-4">
         <div className="space-y-8">
-          <Card className="p-4 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-bold mb-6">
-              Informations du client
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="p-4 sm:p-6 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+            {/* Header */}
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-950">
+                  <User className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Informations du client</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Détails de l'entreprise cliente</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="clientName">Nom de l'entreprise</Label>
+                <Label htmlFor="clientName" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Nom de l'entreprise</Label>
                 <Input
                   id="clientName"
                   {...register("client.name")}
                   placeholder="AMERICAINE IMPORT"
+                  className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="clientSiren">SIREN</Label>
+                <Label htmlFor="clientSiren" className="text-sm font-semibold text-slate-700 dark:text-slate-300">SIREN</Label>
                 <Input
                   id="clientSiren"
                   {...register("client.siren")}
                   placeholder="898 730 551"
+                  className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                 />
               </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="clientAddress">Adresse</Label>
+              <div className="space-y-2">
+                <Label htmlFor="clientAddress" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Adresse</Label>
                 <Input
                   id="clientAddress"
                   {...register("client.address")}
                   placeholder="Adresse complète"
+                  className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                 />
               </div>
             </div>
           </Card>
 
-          <Card className="p-4 sm:p-6">
-            <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
-              <h2 className="text-xl sm:text-2xl font-bold">Services</h2>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={() => setIsAIDialogOpen(true)}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <Wand2 className="w-4 h-4" />
-                  Rédigé par IA
-                </Button>
-                <Button type="button" onClick={addService} variant="outline">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ajouter un service
-                </Button>
+          <Card className="p-4 sm:p-6 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+            {/* Header */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center flex-wrap gap-2 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950">
+                    <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Services</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Détail des prestations et tarifs</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => setIsAIDialogOpen(true)}
+                    variant="outline"
+                    className="gap-2 dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:hover:bg-slate-700"
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    Rédigé par IA
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={addService}
+                    className="gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Ajouter un service
+                  </Button>
+                </div>
+              </div>
+
+              {/* Header row - Colonnes */}
+              <div className="hidden sm:grid grid-cols-12 gap-4 px-4 py-3 bg-slate-100 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 mb-2">
+                <div className="col-span-1 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
+                  <Hash className="w-3 h-3" />
+                  Qté
+                </div>
+                <div className="col-span-6 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
+                  <FileText className="w-3 h-3" />
+                  Description
+                </div>
+                <div className="col-span-2 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
+                  <DollarSign className="w-3 h-3" />
+                  Prix unit.
+                </div>
+                <div className="col-span-2 flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">
+                  <Tag className="w-3 h-3" />
+                  Montant
+                </div>
+                <div className="col-span-1"></div>
               </div>
             </div>
 
-            <div className="space-y-4">
+            {/* Services List */}
+            <div className="space-y-3">
               {services.map((service, index) => (
                 <div
                   key={service.id}
-                  className="grid grid-cols-12 gap-2 sm:gap-4 items-end"
+                  className="grid grid-cols-12 gap-2 sm:gap-4 items-start p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
                 >
+                  {/* Mobile label for quantity */}
                   <div className="col-span-2 sm:col-span-1">
-                    <Label htmlFor={`quantity-${index}`}>Qté</Label>
+                    <Label htmlFor={`quantity-${index}`} className="text-xs sm:hidden block mb-1 text-slate-600 dark:text-slate-400">Qté</Label>
                     <Input
                       id={`quantity-${index}`}
                       type="number"
@@ -338,11 +389,12 @@ export function InvoiceForm({
                         );
                         setServices(newServices);
                       }}
+                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white h-9"
                     />
                   </div>
                   <div className="col-span-10 sm:col-span-6">
-                    <Label htmlFor={`description-${index}`}>Description</Label>
-                    <Input
+                    <Label htmlFor={`description-${index}`} className="text-xs sm:hidden block mb-1 text-slate-600 dark:text-slate-400">Description</Label>
+                    <Textarea
                       id={`description-${index}`}
                       value={service.description}
                       onChange={(e) => {
@@ -353,10 +405,13 @@ export function InvoiceForm({
                         newServices[serviceIndex].description = e.target.value;
                         setServices(newServices);
                       }}
+                      placeholder="Décrivez le service ou le produit..."
+                      rows={3}
+                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white resize-none"
                     />
                   </div>
                   <div className="col-span-5 sm:col-span-2">
-                    <Label htmlFor={`unitPrice-${index}`}>Prix unitaire</Label>
+                    <Label htmlFor={`unitPrice-${index}`} className="text-xs sm:hidden block mb-1 text-slate-600 dark:text-slate-400">Prix unit.</Label>
                     <Input
                       id={`unitPrice-${index}`}
                       type="number"
@@ -375,23 +430,25 @@ export function InvoiceForm({
                         );
                         setServices(newServices);
                       }}
+                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white h-9"
                     />
                   </div>
                   <div className="col-span-5 sm:col-span-2">
-                    <Label htmlFor={`amount-${index}`}>Montant</Label>
+                    <Label htmlFor={`amount-${index}`} className="text-xs sm:hidden block mb-1 text-slate-600 dark:text-slate-400">Montant</Label>
                     <Input
                       id={`amount-${index}`}
                       type="number"
                       value={service.amount}
                       disabled
+                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white/60 h-9 font-semibold"
                     />
                   </div>
-                  <div className="col-span-2 sm:col-span-1">
+                  <div className="col-span-2 sm:col-span-1 flex justify-end">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="text-destructive w-full"
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 h-9 w-9"
                       onClick={() => removeService(service.id)}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -399,124 +456,179 @@ export function InvoiceForm({
                   </div>
                 </div>
               ))}
+            </div>
+          </Card>
 
-              <div className="mt-6 space-y-4">
-                <div className="flex justify-end">
-                  <div className="w-full sm:w-1/3 space-y-2">
-                    <div className="flex justify-between">
-                      <span>Montant HT :</span>
-                      <span>
-                        {subtotal.toLocaleString("fr-FR")}{" "}
-                        {currency === "EUR" ? "€" : "CHF"}
-                      </span>
+          {/* Récapitulatif - Sortie de la section Services */}
+          <div className="w-full">
+            {/* Summary Card - Design sombre aligné */}
+            <div className="bg-slate-900 dark:bg-slate-950 border border-slate-700 dark:border-slate-800 rounded-xl overflow-hidden">
+              {/* Header */}
+              <div className="border-b border-slate-700 dark:border-slate-800 px-5 py-4 bg-gradient-to-r from-slate-800 to-slate-900">
+                <h3 className="text-lg font-bold text-white">Récapitulatif</h3>
+                <p className="text-xs text-slate-400 mt-1 font-medium">
+                  {showTax ? "Détail avec TVA" : "Détail des montants"}
+                </p>
+              </div>
+
+              {/* Content */}
+              <div className="px-5 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Montant HT */}
+                  <div className="flex items-center justify-between sm:flex-col sm:items-start sm:gap-2">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-slate-500" />
+                      <span className="text-sm text-slate-300">Montant HT</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Remise :</span>
-                      <span>
-                        {discountType === "percentage"
+                    <span className="font-semibold text-white">
+                      {subtotal.toLocaleString("fr-FR")}{" "}
+                      {currency === "EUR" ? "€" : "CHF"}
+                    </span>
+                  </div>
+
+                  {/* Remise */}
+                  {discountValue > 0 && (
+                    <div className="flex items-center justify-between sm:flex-col sm:items-start py-2 px-3 bg-red-950/40 rounded-lg border border-red-800">
+                      <div className="flex items-center gap-2">
+                        <TrendingDown className="w-4 h-4 text-red-500" />
+                        <span className="text-sm text-red-300">Remise</span>
+                      </div>
+                      <span className="font-semibold text-red-400">
+                        -{discountType === "percentage"
                           ? `${discountValue}%`
                           : `${discountValue.toLocaleString("fr-FR")} ${
                               currency === "EUR" ? "€" : "CHF"
                             }`}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Total HT :</span>
-                      <span>
-                        {totalAmount.toLocaleString("fr-FR")}{" "}
-                        {currency === "EUR" ? "€" : "CHF"}
-                      </span>
+                  )}
+
+                  {/* Total HT */}
+                  <div className="flex items-center justify-between sm:flex-col sm:items-start pt-2 border-t border-slate-700 sm:border-0">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-slate-500" />
+                      <span className="text-sm font-semibold text-slate-200">Total HT</span>
                     </div>
-                    {taxRate > 0 && (
-                      <div className="flex justify-between">
-                        <span>TVA ({taxRate}%) :</span>
-                        <span>
-                          {((totalAmount * taxRate) / 100).toLocaleString(
-                            "fr-FR"
-                          )}{" "}
-                          {currency === "EUR" ? "€" : "CHF"}
+                    <span className="font-bold text-white">
+                      {totalAmount.toLocaleString("fr-FR")}{" "}
+                      {currency === "EUR" ? "€" : "CHF"}
+                    </span>
+                  </div>
+
+                  {/* TVA */}
+                  {showTax && taxRate > 0 && (
+                    <div className="flex items-center justify-between sm:flex-col sm:items-start">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 bg-blue-950/50 text-blue-300 text-xs font-semibold rounded-md border border-blue-800">
+                          TVA
                         </span>
+                        <span className="text-sm text-slate-400">({taxRate}%)</span>
                       </div>
-                    )}
-                    <div className="flex justify-between font-bold">
-                      <span>Total TTC :</span>
-                      <span>
-                        {totalTTC.toLocaleString("fr-FR")}{" "}
+                      <span className="font-semibold text-blue-400">
+                        {((totalAmount * taxRate) / 100).toLocaleString(
+                          "fr-FR"
+                        )}{" "}
                         {currency === "EUR" ? "€" : "CHF"}
                       </span>
                     </div>
-                    <div className="flex gap-2 mt-2">
-                      <div className="flex-1">
-                        <Label>Type de remise</Label>
-                        <Select
-                          value={discountType}
-                          onValueChange={(value: "percentage" | "fixed") =>
-                            setDiscountType(value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="percentage">
-                              Pourcentage (%)
-                            </SelectItem>
-                            <SelectItem value="fixed">
-                              Montant fixe ({currency === "EUR" ? "€" : "CHF"})
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex-1">
-                        <Label>Valeur de la remise</Label>
-                        <Input
-                          type="number"
-                          value={discountValue}
-                          onChange={(e) =>
-                            setDiscountValue(Number(e.target.value))
-                          }
-                          placeholder={
-                            discountType === "percentage"
-                              ? "0%"
-                              : `0${currency === "EUR" ? "€" : "CHF"}`
-                          }
-                        />
-                      </div>
-                    </div>
+                  )}
+                </div>
+
+                {/* Total TTC/Total - Highlighted - Full width */}
+                <div className="flex items-center justify-between p-4 mt-6 bg-blue-950/60 rounded-lg border-2 border-blue-700">
+                  <span className="font-bold text-blue-100">{showTax ? "Total TTC" : "Total"}</span>
+                  <span className="text-2xl font-bold text-blue-400">
+                    {showTax ? totalTTC.toLocaleString("fr-FR") : totalAmount.toLocaleString("fr-FR")}{" "}
+                    {currency === "EUR" ? "€" : "CHF"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Footer - Discount Controls */}
+              <div className="border-t border-slate-700 px-5 py-4 bg-slate-800/50 space-y-3">
+                <p className="text-xs font-semibold text-slate-400 uppercase">Configuration de la remise</p>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <Label className="text-xs mb-2 block text-slate-300">Type</Label>
+                    <Select
+                      value={discountType}
+                      onValueChange={(value: "percentage" | "fixed") =>
+                        setDiscountType(value)
+                      }
+                    >
+                      <SelectTrigger className="h-9 text-sm bg-slate-800 border-slate-700 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectItem value="percentage" className="text-white">
+                          Pourcentage (%)
+                        </SelectItem>
+                        <SelectItem value="fixed" className="text-white">
+                          Montant fixe ({currency === "EUR" ? "€" : "CHF"})
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs mb-2 block text-slate-300">Valeur</Label>
+                    <Input
+                      type="number"
+                      value={discountValue}
+                      onChange={(e) =>
+                        setDiscountValue(Number(e.target.value))
+                      }
+                      placeholder="0"
+                      className="h-9 text-sm bg-slate-800 border-slate-700 text-white placeholder-slate-500"
+                    />
                   </div>
                 </div>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-4 sm:p-6">
-            <h2 className="text-xl sm:text-2xl font-bold mb-6">
-              Conditions de paiement
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="deposit">Acompte (%)</Label>
-                <Input
-                  id="deposit"
-                  type="number"
-                  {...register("deposit")}
-                  placeholder="50"
-                />
+          <Card className="p-4 sm:p-6 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+            {/* Header */}
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950">
+                  <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Conditions de paiement</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Acompte, délai et conditions</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="deposit" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Acompte (%)</Label>
+                  <Input
+                    id="deposit"
+                    type="number"
+                    {...register("deposit")}
+                    placeholder="50"
+                    className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryTime" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Délai de livraison</Label>
+                  <Input
+                    id="deliveryTime"
+                    {...register("deliveryTime")}
+                    placeholder="3 semaines"
+                    className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deliveryTime">Délai de livraison</Label>
-                <Input
-                  id="deliveryTime"
-                  {...register("deliveryTime")}
-                  placeholder="3 semaines"
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="paymentTerms">Conditions de paiement</Label>
-                <Input
+                <Label htmlFor="paymentTerms" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Conditions de paiement</Label>
+                <Textarea
                   id="paymentTerms"
                   {...register("paymentTerms")}
                   placeholder="50% à la signature, 50% à la livraison"
+                  rows={3}
+                  className="dark:bg-slate-800 dark:border-slate-600 dark:text-white resize-none"
                 />
               </div>
             </div>
@@ -524,8 +636,11 @@ export function InvoiceForm({
         </div>
       </ScrollArea>
 
-      <div className="flex justify-end space-x-4 sticky bottom-0 bg-background p-4 border-t">
-        <Button type="submit">
+      <div className="flex justify-end space-x-4 sticky bottom-0 bg-white dark:bg-slate-950 p-4 border-t border-slate-200 dark:border-slate-800">
+        <Button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-semibold h-10 px-6"
+        >
           {initialData ? "Mettre à jour" : "Créer"} le{" "}
           {type === "quote" ? "devis" : "facture"}
         </Button>

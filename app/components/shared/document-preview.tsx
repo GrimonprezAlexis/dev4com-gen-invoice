@@ -8,9 +8,9 @@ import {
   StyleSheet,
   PDFViewer,
   PDFDownloadLink,
+  Image,
 } from "@react-pdf/renderer";
 import { Invoice, BillingInvoice } from "@/app/types";
-import Image from "next/image";
 
 const styles = StyleSheet.create({
   page: {
@@ -158,6 +158,16 @@ const formatNumber = (number: number) => {
     .replace(/\s/g, " ");
 };
 
+// Get logo dimensions based on size setting
+const getLogoDimensions = (size?: "small" | "medium" | "large") => {
+  const sizes = {
+    small: { width: 70, height: 60 },
+    medium: { width: 100, height: 75 },
+    large: { width: 130, height: 85 },
+  };
+  return sizes[size || "medium"];
+};
+
 // Separate Document component for reuse in downloads
 export const PDFDocument = ({ document, type }: DocumentPreviewProps) => {
   const isQuote = type === "quote";
@@ -191,8 +201,7 @@ export const PDFDocument = ({ document, type }: DocumentPreviewProps) => {
               {document.company.logo && (
                 <Image
                   src={document.company.logo}
-                  style={styles.logo}
-                  alt="Logo de l'entreprise"
+                  style={getLogoDimensions(document.company.logoSize)}
                 />
               )}
             </View>

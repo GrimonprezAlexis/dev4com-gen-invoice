@@ -3,6 +3,7 @@ export interface Company {
   address: string;
   siren: string;
   logo?: string;
+  logoSize?: "small" | "medium" | "large";
 }
 
 export interface Service {

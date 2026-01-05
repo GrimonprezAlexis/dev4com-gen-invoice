@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
 } from "@/components/ui/dialog";
 import { StatusBadge } from "../status-badge";
 import { QuoteEmailDialog } from "../quotes/email-dialog";
@@ -190,37 +191,32 @@ export function InvoiceList({
                   }
                   fileName={`${type === "quote" ? "Devis" : "Facture"}_${invoice.number}.pdf`}
                   className="flex items-center w-full text-green-600"
-                >
-                  {({ loading }) => (
+                  children={(({ loading }: { loading: any }) => (
                     <>
                       <Download className="w-4 h-4 mr-2" />
                       {loading ? "Préparation..." : `Télécharger ${type === "quote" ? "le devis" : "la facture"}`}
                     </>
-                  )}
-                </PDFDownloadLink>
+                  )) as any}
+                />
               </DropdownMenuItem>
-              <Dialog>
-                {type === "quote" ? (
-                  <QuoteEmailDialog
-                    invoice={invoice}
-                    onEmailSent={() => onStatusUpdate(invoice.id, "sent")}
-                  />
-                ) : (
-                  <BillingEmailDialog
-                    invoice={invoice as unknown as BillingInvoice}
-                    onEmailSent={() => {}}
-                  />
-                )}
-              </Dialog>
+              {type === "quote" ? (
+                <QuoteEmailDialog
+                  invoice={invoice}
+                  onEmailSent={() => onStatusUpdate(invoice.id, "sent")}
+                />
+              ) : (
+                <BillingEmailDialog
+                  invoice={invoice as unknown as BillingInvoice}
+                  onEmailSent={() => {}}
+                />
+              )}
               {type === "quote" &&
                 invoice.status === "accepted" &&
                 onGenerateInvoice && (
-                  <Dialog>
-                    <GenerateInvoiceDialog
-                      quote={invoice}
-                      onGenerate={onGenerateInvoice}
-                    />
-                  </Dialog>
+                  <GenerateInvoiceDialog
+                    quote={invoice}
+                    onGenerate={onGenerateInvoice}
+                  />
                 )}
               {type === "quote" && invoice.status !== "accepted" && (
                 <DropdownMenuItem
@@ -298,21 +294,40 @@ export function InvoiceList({
       </div>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogTitle>Confirmer la suppression</DialogTitle>
-          <DialogDescription>
-            Êtes-vous sûr de vouloir supprimer {selectedInvoices.length} devis
-            {selectedInvoices.length > 1 ? "s" : ""} ? Cette action est
-            irréversible.
-          </DialogDescription>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-950">
+                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <DialogTitle>Confirmer la suppression</DialogTitle>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-800 dark:text-red-200">
+                Êtes-vous sûr de vouloir supprimer {selectedInvoices.length} devis
+                {selectedInvoices.length > 1 ? "s" : ""} ?
+              </p>
+              <p className="text-xs text-red-700 dark:text-red-300 mt-2 font-semibold">
+                ⚠️ Cette action est irréversible.
+              </p>
+            </div>
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
+              className="flex-1"
             >
               Annuler
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="flex-1"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
               Supprimer
             </Button>
           </DialogFooter>
