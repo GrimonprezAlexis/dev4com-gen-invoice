@@ -255,6 +255,7 @@ export default function Home() {
                   : "Créer un nouveau devis"}
               </DialogTitle>
               <QuoteForm
+                key={editingInvoice?.id || "new"}
                 onSave={handleSaveInvoice}
                 initialData={editingInvoice}
               />
@@ -303,6 +304,7 @@ export default function Home() {
                     : "Créer un nouveau devis"}
                 </DialogTitle>
                 <QuoteForm
+                  key={editingInvoice?.id || "new"}
                   onSave={handleSaveInvoice}
                   initialData={editingInvoice}
                 />

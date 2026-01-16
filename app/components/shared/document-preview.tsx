@@ -169,6 +169,29 @@ const styles = StyleSheet.create({
     color: "#1f2937",
     flex: 1,
   },
+  signatureSection: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: "#f0fdf4",
+    borderRadius: 4,
+    borderLeft: "3px solid #10b981",
+  },
+  signatureTitle: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#166534",
+    marginBottom: 8,
+  },
+  signatureName: {
+    fontSize: 18,
+    color: "#1e3a5f",
+    fontStyle: "italic",
+    marginBottom: 4,
+  },
+  signatureDate: {
+    fontSize: 8,
+    color: "#6b7280",
+  },
 });
 
 interface DocumentPreviewProps {
@@ -503,6 +526,24 @@ export const PDFDocument = ({ document, type }: DocumentPreviewProps) => {
                 <Text style={styles.paymentAccountLabel}>Titulaire :</Text>
                 <Text style={styles.paymentAccountValue}>{document.paymentAccount.accountHolder}</Text>
               </View>
+            </View>
+          )}
+
+          {/* Signature Section */}
+          {isQuote && (document as Invoice).signature && (
+            <View style={styles.signatureSection}>
+              <Text style={styles.signatureTitle}>Signature client</Text>
+              <Text style={styles.signatureName}>{(document as Invoice).signature?.name}</Text>
+              <Text style={styles.signatureDate}>
+                Signé électroniquement le{" "}
+                {(document as Invoice).signature?.signedAt
+                  ? new Date((document as Invoice).signature!.signedAt!).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : ""}
+              </Text>
             </View>
           )}
 

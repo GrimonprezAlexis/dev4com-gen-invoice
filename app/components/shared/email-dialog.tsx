@@ -25,9 +25,10 @@ interface EmailDialogProps {
   type: 'quote' | 'billing';
   onEmailSent: () => void;
   emailTemplate: EmailTemplate;
+  validationUrl?: string;
 }
 
-export function EmailDialog({ document, type, onEmailSent, emailTemplate }: EmailDialogProps) {
+export function EmailDialog({ document, type, onEmailSent, emailTemplate, validationUrl }: EmailDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState(emailTemplate.subject);
@@ -70,6 +71,7 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate }: Emai
           message,
           invoice: document,
           attachment: attachmentData,
+          validationUrl: validationUrl,
         }),
       });
 

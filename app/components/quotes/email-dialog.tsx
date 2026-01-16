@@ -8,7 +8,16 @@ interface QuoteEmailDialogProps {
   onEmailSent: () => void;
 }
 
+const getBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return process.env.NEXT_PUBLIC_BASE_URL || "https://devis.dev4com.com";
+};
+
 export function QuoteEmailDialog({ invoice, onEmailSent }: QuoteEmailDialogProps) {
+  const validationUrl = `${getBaseUrl()}/validation/${invoice.id}`;
+
   return (
     <BaseEmailDialog
       document={invoice}
@@ -21,7 +30,10 @@ export function QuoteEmailDialog({ invoice, onEmailSent }: QuoteEmailDialogProps
 Bonjour,
 
 Vous trouverez ci-joint notre devis ${invoice.number} détaillant notre proposition commerciale pour votre besoin.
-Pour accepter ce devis, vous pouvez simplement répondre à cet email avec votre confirmation. Si vous avez des questions ou souhaitez des modifications, n'hésitez pas à me contacter.
+
+Pour accepter et signer électroniquement ce devis, cliquez sur le bouton ci-dessous :
+
+[VALIDATION_BUTTON]
 
 Je reste à votre disposition pour tout complément d'information.
 
@@ -31,6 +43,7 @@ ${invoice.company.address}
 SIREN : ${invoice.company.siren}
         `.trim()
       }}
+      validationUrl={validationUrl}
     />
   );
 }

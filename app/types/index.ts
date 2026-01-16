@@ -41,6 +41,10 @@ export interface Invoice {
   paymentTerms: string;
   deliveryTime: string;
   paymentAccount?: PaymentAccount;
+  signature?: {
+    name: string;
+    signedAt?: Date;
+  };
   status: "draft" | "sent" | "accepted" | "rejected";
   createdAt: Date;
   currency?: string;
