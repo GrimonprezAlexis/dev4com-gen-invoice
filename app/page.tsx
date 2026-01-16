@@ -248,7 +248,7 @@ export default function Home() {
                 Nouveau Devis
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-[95vw] sm:w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-[92vw] sm:w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogTitle>
                 {editingInvoice
                   ? "Modifier le devis"
@@ -296,7 +296,7 @@ export default function Home() {
                   Nouveau Devis
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-[95vw] sm:w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[92vw] sm:w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogTitle>
                   {editingInvoice
                     ? "Modifier le devis"
@@ -313,7 +313,7 @@ export default function Home() {
       </Sheet>
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="w-[95vw] sm:w-full sm:max-w-7xl max-h-[90vh]">
+        <DialogContent className="w-[92vw] sm:w-full sm:max-w-7xl max-h-[90vh]">
           <DialogTitle>Aperçu du devis</DialogTitle>
           {selectedInvoice && <QuotePreview invoice={selectedInvoice} />}
         </DialogContent>
@@ -323,7 +323,7 @@ export default function Home() {
         open={isBillingPreviewOpen}
         onOpenChange={setIsBillingPreviewOpen}
       >
-        <DialogContent className="w-[95vw] sm:w-full sm:max-w-7xl max-h-[90vh]">
+        <DialogContent className="w-[92vw] sm:w-full sm:max-w-7xl max-h-[90vh]">
           <DialogTitle>Aperçu de la facture</DialogTitle>
           {selectedBillingInvoice && (
             <BillingPreview invoice={selectedBillingInvoice} />

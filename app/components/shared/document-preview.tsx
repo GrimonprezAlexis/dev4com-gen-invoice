@@ -141,6 +141,34 @@ const styles = StyleSheet.create({
   highlight: {
     color: "#2563eb",
   },
+  paymentAccount: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: "#f0f9ff",
+    borderRadius: 4,
+    borderLeft: "3px solid #2563eb",
+  },
+  paymentAccountTitle: {
+    fontSize: 11,
+    fontWeight: "bold",
+    marginBottom: 6,
+    color: "#1f2937",
+  },
+  paymentAccountRow: {
+    flexDirection: "row",
+    marginBottom: 2,
+  },
+  paymentAccountLabel: {
+    fontSize: 9,
+    color: "#4b5563",
+    width: 80,
+    fontWeight: "bold",
+  },
+  paymentAccountValue: {
+    fontSize: 9,
+    color: "#1f2937",
+    flex: 1,
+  },
 });
 
 interface DocumentPreviewProps {
@@ -320,7 +348,7 @@ export const PDFDocument = ({ document, type }: DocumentPreviewProps) => {
               ) : (
                 <>
                   <View style={styles.totalRow}>
-                    <Text>Montant :</Text>
+                    <Text>Total HT :</Text>
                     <Text>
                       {formatNumber((document as Invoice).subtotal)}{" "}
                       {currencySymbol}
@@ -339,12 +367,21 @@ export const PDFDocument = ({ document, type }: DocumentPreviewProps) => {
                     </View>
                   )}
                   <View style={styles.totalRow}>
-                    <Text>Total Remise :</Text>
+                    <Text>Acompte ({(document as Invoice).deposit}%) :</Text>
+                    <Text>
+                      {formatNumber(
+                        (document.totalAmount * (document as Invoice).deposit) / 100
+                      )}{" "}
+                      {currencySymbol}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRowBold}>
+                    <Text>Total TTC :</Text>
                     <Text>
                       {formatNumber(document.totalAmount)} {currencySymbol}
                     </Text>
                   </View>
-                  <View style={styles.totalRowBold}>
+                  <View style={styles.totalRow}>
                     <Text style={{ fontSize: 8 }}>
                       TVA non applicable, art. 293 B CGI
                     </Text>
@@ -415,7 +452,7 @@ export const PDFDocument = ({ document, type }: DocumentPreviewProps) => {
                   </View>
                 )}
                 <View style={styles.totalRow}>
-                  <Text>Total Remise :</Text>
+                  <Text>Net à payer :</Text>
                   <Text>
                     {formatNumber(document.totalAmount)} {currencySymbol}
                   </Text>
@@ -448,6 +485,25 @@ export const PDFDocument = ({ document, type }: DocumentPreviewProps) => {
                 </Text>
               </View>
             )
+          )}
+
+          {/* Payment Account Section */}
+          {document.paymentAccount && (
+            <View style={styles.paymentAccount}>
+              <Text style={styles.paymentAccountTitle}>Coordonnées bancaires</Text>
+              <View style={styles.paymentAccountRow}>
+                <Text style={styles.paymentAccountLabel}>IBAN :</Text>
+                <Text style={styles.paymentAccountValue}>{document.paymentAccount.iban}</Text>
+              </View>
+              <View style={styles.paymentAccountRow}>
+                <Text style={styles.paymentAccountLabel}>BIC / SWIFT :</Text>
+                <Text style={styles.paymentAccountValue}>{document.paymentAccount.bic}</Text>
+              </View>
+              <View style={styles.paymentAccountRow}>
+                <Text style={styles.paymentAccountLabel}>Titulaire :</Text>
+                <Text style={styles.paymentAccountValue}>{document.paymentAccount.accountHolder}</Text>
+              </View>
+            </View>
           )}
 
           <View style={styles.footer}>

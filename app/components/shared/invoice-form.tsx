@@ -16,9 +16,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Invoice, Service, Company } from "@/app/types";
+import { Invoice, Service, Company, PaymentAccount } from "@/app/types";
 import { TemplateSelector } from "../template-selector";
 import { AIRewriteDialog } from "../ai-rewrite-dialog";
+import { getPaymentAccounts } from "@/lib/firebase";
+import { CreditCard } from "lucide-react";
 
 interface InvoiceFormProps {
   onSave: (invoice: Invoice) => void;
@@ -55,6 +57,27 @@ export function InvoiceForm({
     initialData?.showTax ?? false
   );
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
+  const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
+  const [selectedPaymentAccount, setSelectedPaymentAccount] = useState<PaymentAccount | undefined>(
+    initialData?.paymentAccount
+  );
+
+  // Load payment accounts
+  useEffect(() => {
+    const loadPaymentAccounts = async () => {
+      try {
+        const accounts = await getPaymentAccounts();
+        setPaymentAccounts(accounts);
+        // If editing and has payment account, set it
+        if (initialData?.paymentAccount) {
+          setSelectedPaymentAccount(initialData.paymentAccount);
+        }
+      } catch (error) {
+        console.error("Error loading payment accounts:", error);
+      }
+    };
+    loadPaymentAccounts();
+  }, []);
 
   // Synchronise la devise si on édite un devis existant
   useEffect(() => {
@@ -197,6 +220,7 @@ export function InvoiceForm({
       createdAt: initialData?.createdAt || new Date(),
       company: companyInfo || data.company, // Use companyInfo if available
       showTax,
+      paymentAccount: selectedPaymentAccount,
     };
 
     onSave(invoice);
@@ -230,8 +254,8 @@ export function InvoiceForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      <div className="flex justify-between items-center mb-4">
-        <div className="w-1/3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+        <div className="w-full sm:w-1/3">
           <Label htmlFor="currency">Devise</Label>
           <Select value={currency} onValueChange={(e) => onChangeCurrency(e)}>
             <SelectTrigger>
@@ -243,23 +267,26 @@ export function InvoiceForm({
             </SelectContent>
           </Select>
         </div>
-        <TemplateSelector
-          onSelectTemplate={handleTemplateSelect}
-          currentInvoice={initialData || undefined}
-        />
+        <div className="w-full sm:w-auto">
+          <TemplateSelector
+            onSelectTemplate={handleTemplateSelect}
+            currentInvoice={initialData || undefined}
+          />
+        </div>
       </div>
 
-      <div className="mb-4">
-        <label className="flex items-center gap-2">
+      <div className="mb-4 px-0 sm:px-0">
+        <label className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/30 transition-colors">
           <input
             type="checkbox"
             checked={showTax}
             onChange={(e) => setShowTax(e.target.checked)}
+            className="w-5 h-5 cursor-pointer"
           />
-          Afficher la TVA
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Afficher la TVA</span>
         </label>
       </div>
-      <ScrollArea className="h-[calc(100vh-200px)] pr-4">
+      <ScrollArea className="h-[calc(100vh-280px)] sm:h-[calc(100vh-220px)] pr-4">
         <div className="space-y-8">
           <Card className="p-4 sm:p-6 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
             {/* Header */}
@@ -308,33 +335,35 @@ export function InvoiceForm({
           <Card className="p-4 sm:p-6 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
             {/* Header */}
             <div className="mb-6">
-              <div className="flex justify-between items-center flex-wrap gap-2 mb-4">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950">
                     <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Services</h2>
+                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-white">Services</h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Détail des prestations et tarifs</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <Button
                     type="button"
                     onClick={() => setIsAIDialogOpen(true)}
                     variant="outline"
-                    className="gap-2 dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:hover:bg-slate-700"
+                    className="gap-2 w-full sm:w-auto dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:hover:bg-slate-700 order-2 sm:order-1"
                   >
                     <Wand2 className="w-4 h-4" />
-                    Rédigé par IA
+                    <span className="hidden sm:inline">Rédigé par IA</span>
+                    <span className="sm:hidden">IA</span>
                   </Button>
                   <Button
                     type="button"
                     onClick={addService}
-                    className="gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
+                    className="gap-2 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 order-1 sm:order-2"
                   >
                     <Plus className="w-4 h-4" />
-                    Ajouter un service
+                    <span className="hidden sm:inline">Ajouter un service</span>
+                    <span className="sm:hidden">Ajouter</span>
                   </Button>
                 </div>
               </div>
@@ -366,10 +395,10 @@ export function InvoiceForm({
               {services.map((service, index) => (
                 <div
                   key={service.id}
-                  className="grid grid-cols-12 gap-2 sm:gap-4 items-start p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
+                  className="grid grid-cols-12 gap-2 sm:gap-3 md:gap-4 items-start p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
                 >
                   {/* Mobile label for quantity */}
-                  <div className="col-span-2 sm:col-span-1">
+                  <div className="col-span-3 sm:col-span-1">
                     <Label htmlFor={`quantity-${index}`} className="text-xs sm:hidden block mb-1 text-slate-600 dark:text-slate-400">Qté</Label>
                     <Input
                       id={`quantity-${index}`}
@@ -389,10 +418,10 @@ export function InvoiceForm({
                         );
                         setServices(newServices);
                       }}
-                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white h-9"
+                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white h-9 text-sm"
                     />
                   </div>
-                  <div className="col-span-10 sm:col-span-6">
+                  <div className="col-span-9 sm:col-span-6">
                     <Label htmlFor={`description-${index}`} className="text-xs sm:hidden block mb-1 text-slate-600 dark:text-slate-400">Description</Label>
                     <Textarea
                       id={`description-${index}`}
@@ -407,11 +436,11 @@ export function InvoiceForm({
                       }}
                       placeholder="Décrivez le service ou le produit..."
                       rows={3}
-                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white resize-none"
+                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white resize-none text-sm"
                     />
                   </div>
-                  <div className="col-span-5 sm:col-span-2">
-                    <Label htmlFor={`unitPrice-${index}`} className="text-xs sm:hidden block mb-1 text-slate-600 dark:text-slate-400">Prix unit.</Label>
+                  <div className="col-span-6 sm:col-span-2">
+                    <Label htmlFor={`unitPrice-${index}`} className="text-xs sm:hidden block mb-1 text-slate-600 dark:text-slate-400">P.U.</Label>
                     <Input
                       id={`unitPrice-${index}`}
                       type="number"
@@ -430,20 +459,20 @@ export function InvoiceForm({
                         );
                         setServices(newServices);
                       }}
-                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white h-9"
+                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white h-9 text-sm"
                     />
                   </div>
-                  <div className="col-span-5 sm:col-span-2">
+                  <div className="col-span-6 sm:col-span-2">
                     <Label htmlFor={`amount-${index}`} className="text-xs sm:hidden block mb-1 text-slate-600 dark:text-slate-400">Montant</Label>
                     <Input
                       id={`amount-${index}`}
                       type="number"
                       value={service.amount}
                       disabled
-                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white/60 h-9 font-semibold"
+                      className="dark:bg-slate-800 dark:border-slate-600 dark:text-white/60 h-9 font-semibold text-sm"
                     />
                   </div>
-                  <div className="col-span-2 sm:col-span-1 flex justify-end">
+                  <div className="col-span-12 sm:col-span-1 flex justify-end sm:justify-center">
                     <Button
                       type="button"
                       variant="ghost"
@@ -472,15 +501,15 @@ export function InvoiceForm({
               </div>
 
               {/* Content */}
-              <div className="px-5 py-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="px-4 sm:px-5 py-3 sm:py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   {/* Montant HT */}
-                  <div className="flex items-center justify-between sm:flex-col sm:items-start sm:gap-2">
+                  <div className="flex items-center justify-between md:flex-col md:items-start md:gap-2">
                     <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-slate-500" />
                       <span className="text-sm text-slate-300">Montant HT</span>
                     </div>
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-white text-sm sm:text-base">
                       {subtotal.toLocaleString("fr-FR")}{" "}
                       {currency === "EUR" ? "€" : "CHF"}
                     </span>
@@ -488,12 +517,12 @@ export function InvoiceForm({
 
                   {/* Remise */}
                   {discountValue > 0 && (
-                    <div className="flex items-center justify-between sm:flex-col sm:items-start py-2 px-3 bg-red-950/40 rounded-lg border border-red-800">
+                    <div className="flex items-center justify-between md:flex-col md:items-start py-2 px-3 bg-red-950/40 rounded-lg border border-red-800">
                       <div className="flex items-center gap-2">
                         <TrendingDown className="w-4 h-4 text-red-500" />
                         <span className="text-sm text-red-300">Remise</span>
                       </div>
-                      <span className="font-semibold text-red-400">
+                      <span className="font-semibold text-red-400 text-sm sm:text-base">
                         -{discountType === "percentage"
                           ? `${discountValue}%`
                           : `${discountValue.toLocaleString("fr-FR")} ${
@@ -504,12 +533,12 @@ export function InvoiceForm({
                   )}
 
                   {/* Total HT */}
-                  <div className="flex items-center justify-between sm:flex-col sm:items-start pt-2 border-t border-slate-700 sm:border-0">
+                  <div className="flex items-center justify-between md:flex-col md:items-start pt-2 border-t border-slate-700 md:border-0">
                     <div className="flex items-center gap-2">
                       <Tag className="w-4 h-4 text-slate-500" />
                       <span className="text-sm font-semibold text-slate-200">Total HT</span>
                     </div>
-                    <span className="font-bold text-white">
+                    <span className="font-bold text-white text-sm sm:text-base">
                       {totalAmount.toLocaleString("fr-FR")}{" "}
                       {currency === "EUR" ? "€" : "CHF"}
                     </span>
@@ -517,14 +546,14 @@ export function InvoiceForm({
 
                   {/* TVA */}
                   {showTax && taxRate > 0 && (
-                    <div className="flex items-center justify-between sm:flex-col sm:items-start">
+                    <div className="flex items-center justify-between md:flex-col md:items-start">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center justify-center px-2 py-0.5 bg-blue-950/50 text-blue-300 text-xs font-semibold rounded-md border border-blue-800">
                           TVA
                         </span>
                         <span className="text-sm text-slate-400">({taxRate}%)</span>
                       </div>
-                      <span className="font-semibold text-blue-400">
+                      <span className="font-semibold text-blue-400 text-sm sm:text-base">
                         {((totalAmount * taxRate) / 100).toLocaleString(
                           "fr-FR"
                         )}{" "}
@@ -535,9 +564,9 @@ export function InvoiceForm({
                 </div>
 
                 {/* Total TTC/Total - Highlighted - Full width */}
-                <div className="flex items-center justify-between p-4 mt-6 bg-blue-950/60 rounded-lg border-2 border-blue-700">
-                  <span className="font-bold text-blue-100">{showTax ? "Total TTC" : "Total"}</span>
-                  <span className="text-2xl font-bold text-blue-400">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 p-3 sm:p-4 mt-4 sm:mt-6 bg-blue-950/60 rounded-lg border-2 border-blue-700">
+                  <span className="font-bold text-blue-100 text-sm sm:text-base">{showTax ? "Total TTC" : "Total"}</span>
+                  <span className="text-xl sm:text-2xl font-bold text-blue-400">
                     {showTax ? totalTTC.toLocaleString("fr-FR") : totalAmount.toLocaleString("fr-FR")}{" "}
                     {currency === "EUR" ? "€" : "CHF"}
                   </span>
@@ -545,9 +574,9 @@ export function InvoiceForm({
               </div>
 
               {/* Footer - Discount Controls */}
-              <div className="border-t border-slate-700 px-5 py-4 bg-slate-800/50 space-y-3">
+              <div className="border-t border-slate-700 px-4 sm:px-5 py-3 sm:py-4 bg-slate-800/50 space-y-3">
                 <p className="text-xs font-semibold text-slate-400 uppercase">Configuration de la remise</p>
-                <div className="flex gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                   <div className="flex-1">
                     <Label className="text-xs mb-2 block text-slate-300">Type</Label>
                     <Select
@@ -594,13 +623,13 @@ export function InvoiceForm({
                   <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Conditions de paiement</h2>
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-white">Conditions de paiement</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Acompte, délai et conditions</p>
                 </div>
               </div>
             </div>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="deposit" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Acompte (%)</Label>
                   <Input
@@ -608,7 +637,7 @@ export function InvoiceForm({
                     type="number"
                     {...register("deposit")}
                     placeholder="50"
-                    className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                    className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white text-sm"
                   />
                 </div>
                 <div className="space-y-2">
@@ -617,7 +646,7 @@ export function InvoiceForm({
                     id="deliveryTime"
                     {...register("deliveryTime")}
                     placeholder="3 semaines"
-                    className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                    className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white text-sm"
                   />
                 </div>
               </div>
@@ -628,18 +657,51 @@ export function InvoiceForm({
                   {...register("paymentTerms")}
                   placeholder="50% à la signature, 50% à la livraison"
                   rows={3}
-                  className="dark:bg-slate-800 dark:border-slate-600 dark:text-white resize-none"
+                  className="dark:bg-slate-800 dark:border-slate-600 dark:text-white resize-none text-sm"
                 />
               </div>
+              {paymentAccounts.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    Compte de paiement
+                  </Label>
+                  <Select
+                    value={selectedPaymentAccount?.id || ""}
+                    onValueChange={(value) => {
+                      const account = paymentAccounts.find((a) => a.id === value);
+                      setSelectedPaymentAccount(account);
+                    }}
+                  >
+                    <SelectTrigger className="h-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white text-sm">
+                      <SelectValue placeholder="Sélectionner un compte de paiement" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name} - {account.accountHolder}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedPaymentAccount && (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg text-xs space-y-1">
+                      <p><span className="font-medium">IBAN :</span> {selectedPaymentAccount.iban}</p>
+                      <p><span className="font-medium">BIC :</span> {selectedPaymentAccount.bic}</p>
+                      <p><span className="font-medium">Titulaire :</span> {selectedPaymentAccount.accountHolder}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </Card>
         </div>
       </ScrollArea>
 
-      <div className="flex justify-end space-x-4 sticky bottom-0 bg-white dark:bg-slate-950 p-4 border-t border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:items-center gap-2 sticky bottom-0 bg-white dark:bg-slate-950 p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800">
         <Button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-semibold h-10 px-6"
+          className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-semibold h-10 px-6 text-sm sm:text-base"
         >
           {initialData ? "Mettre à jour" : "Créer"} le{" "}
           {type === "quote" ? "devis" : "facture"}

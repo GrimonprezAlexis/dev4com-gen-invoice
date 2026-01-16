@@ -12,7 +12,7 @@ import {
   orderBy,
   getDoc,
 } from "firebase/firestore";
-import { Invoice, BillingInvoice, Company } from "@/app/types";
+import { Invoice, BillingInvoice, Company, PaymentAccount } from "@/app/types";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBUlU1esFktMUK0TgJIqCww7xkGCqTU3cs",
@@ -33,6 +33,7 @@ const invoicesCollection = collection(db, "invoices");
 const billingInvoicesCollection = collection(db, "billingInvoices");
 const companyCollection = collection(db, "company");
 const templatesCollection = collection(db, "templates");
+const paymentAccountsCollection = collection(db, "paymentAccounts");
 
 // Template operations
 export const saveTemplate = async (template: Invoice) => {
@@ -267,6 +268,41 @@ export const getBillingInvoices = async () => {
     })) as BillingInvoice[];
   } catch (error) {
     console.error("Error getting billing invoices:", error);
+    throw error;
+  }
+};
+
+// Payment Account operations
+export const savePaymentAccount = async (account: PaymentAccount) => {
+  try {
+    const docRef = doc(paymentAccountsCollection, account.id);
+    await setDoc(docRef, account);
+    return account;
+  } catch (error) {
+    console.error("Error saving payment account:", error);
+    throw error;
+  }
+};
+
+export const getPaymentAccounts = async (): Promise<PaymentAccount[]> => {
+  try {
+    const querySnapshot = await getDocs(paymentAccountsCollection);
+    return querySnapshot.docs.map((doc) => ({
+      ...doc.data(),
+      id: doc.id,
+    })) as PaymentAccount[];
+  } catch (error) {
+    console.error("Error getting payment accounts:", error);
+    throw error;
+  }
+};
+
+export const deletePaymentAccount = async (id: string) => {
+  try {
+    const docRef = doc(paymentAccountsCollection, id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error("Error deleting payment account:", error);
     throw error;
   }
 };

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     if (!apiKey || apiKey === "votre-clé-api-anthropic-ici") {
       return NextResponse.json(
         {
-          error: "Clé API Anthropic non configurée. Configurez ANTHROPIC_API_KEY dans .env.local"
+          error: "Clé API Anthropic non configurée. Configurez ANTHROPIC_API_KEY dans .env"
         },
         { status: 500 }
       );

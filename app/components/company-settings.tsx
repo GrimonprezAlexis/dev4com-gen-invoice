@@ -5,10 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Company } from "../types";
+import { Company, PaymentAccount } from "../types";
 import { toast } from "sonner";
-import { Upload, X } from "lucide-react";
-import { saveCompany, getCompany } from "@/lib/firebase";
+import { Upload, X, Plus, Trash2, CreditCard } from "lucide-react";
+import { saveCompany, getCompany, savePaymentAccount, getPaymentAccounts, deletePaymentAccount } from "@/lib/firebase";
+import { Separator } from "@/components/ui/separator";
 
 export function CompanySettings() {
   const [company, setCompany] = useState<Company>({
@@ -17,24 +18,36 @@ export function CompanySettings() {
     siren: "",
     logo: "",
   });
+  const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
+  const [newAccount, setNewAccount] = useState<Omit<PaymentAccount, "id">>({
+    name: "",
+    iban: "",
+    bic: "",
+    accountHolder: "",
+  });
+  const [isAddingAccount, setIsAddingAccount] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const loadCompany = async () => {
+    const loadData = async () => {
       try {
-        const companyData = await getCompany();
+        const [companyData, accountsData] = await Promise.all([
+          getCompany(),
+          getPaymentAccounts(),
+        ]);
         if (companyData) {
           setCompany(companyData);
         }
+        setPaymentAccounts(accountsData);
       } catch (error) {
-        console.error("Error loading company data:", error);
-        toast.error("Erreur lors du chargement des données de l'entreprise");
+        console.error("Error loading data:", error);
+        toast.error("Erreur lors du chargement des données");
       } finally {
         setIsLoading(false);
       }
     };
-    loadCompany();
+    loadData();
   }, []);
 
   const handleSave = async () => {
@@ -73,6 +86,39 @@ export function CompanySettings() {
     setCompany(prev => ({ ...prev, logo: "" }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleAddPaymentAccount = async () => {
+    if (!newAccount.name || !newAccount.iban || !newAccount.bic || !newAccount.accountHolder) {
+      toast.error("Veuillez remplir tous les champs du compte de paiement");
+      return;
+    }
+
+    try {
+      const account: PaymentAccount = {
+        ...newAccount,
+        id: Date.now().toString(),
+      };
+      await savePaymentAccount(account);
+      setPaymentAccounts((prev) => [...prev, account]);
+      setNewAccount({ name: "", iban: "", bic: "", accountHolder: "" });
+      setIsAddingAccount(false);
+      toast.success("Compte de paiement ajouté");
+    } catch (error) {
+      console.error("Error adding payment account:", error);
+      toast.error("Erreur lors de l'ajout du compte de paiement");
+    }
+  };
+
+  const handleDeletePaymentAccount = async (id: string) => {
+    try {
+      await deletePaymentAccount(id);
+      setPaymentAccounts((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Compte de paiement supprimé");
+    } catch (error) {
+      console.error("Error deleting payment account:", error);
+      toast.error("Erreur lors de la suppression du compte de paiement");
     }
   };
 
@@ -185,6 +231,119 @@ export function CompanySettings() {
         </div>
         <div className="flex justify-end">
           <Button onClick={handleSave}>Enregistrer</Button>
+        </div>
+
+        <Separator className="my-8" />
+
+        {/* Payment Accounts Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              <h3 className="text-lg font-semibold">Comptes de paiement</h3>
+            </div>
+            {!isAddingAccount && (
+              <Button variant="outline" size="sm" onClick={() => setIsAddingAccount(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter un compte
+              </Button>
+            )}
+          </div>
+
+          {/* Existing accounts */}
+          {paymentAccounts.length > 0 && (
+            <div className="space-y-3">
+              {paymentAccounts.map((account) => (
+                <div
+                  key={account.id}
+                  className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900 flex justify-between items-start"
+                >
+                  <div className="space-y-1">
+                    <p className="font-medium">{account.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium">IBAN :</span> {account.iban}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium">BIC :</span> {account.bic}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium">Titulaire :</span> {account.accountHolder}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-500 hover:text-red-600"
+                    onClick={() => handleDeletePaymentAccount(account.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {paymentAccounts.length === 0 && !isAddingAccount && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Aucun compte de paiement enregistré
+            </p>
+          )}
+
+          {/* Add new account form */}
+          {isAddingAccount && (
+            <div className="p-4 border rounded-lg space-y-4">
+              <div>
+                <Label htmlFor="accountName">Nom du compte</Label>
+                <Input
+                  id="accountName"
+                  placeholder="Ex: Compte principal"
+                  value={newAccount.name}
+                  onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="iban">IBAN</Label>
+                <Input
+                  id="iban"
+                  placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"
+                  value={newAccount.iban}
+                  onChange={(e) => setNewAccount({ ...newAccount, iban: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="bic">BIC / SWIFT</Label>
+                <Input
+                  id="bic"
+                  placeholder="XXXXXXXX"
+                  value={newAccount.bic}
+                  onChange={(e) => setNewAccount({ ...newAccount, bic: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="accountHolder">Nom associé au compte</Label>
+                <Input
+                  id="accountHolder"
+                  placeholder="Ex: EI GRIMONPREZ Alexis"
+                  value={newAccount.accountHolder}
+                  onChange={(e) => setNewAccount({ ...newAccount, accountHolder: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddingAccount(false);
+                    setNewAccount({ name: "", iban: "", bic: "", accountHolder: "" });
+                  }}
+                >
+                  Annuler
+                </Button>
+                <Button onClick={handleAddPaymentAccount}>
+                  Enregistrer le compte
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Card>

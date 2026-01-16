@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Eye, Edit, Send } from "lucide-react";
+import { Mail, Eye, Edit, Send, AlertCircle, Paperclip, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Invoice, BillingInvoice } from "@/app/types";
 import { useConfetti } from "@/app/hooks/use-confetti";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface EmailTemplate {
   from: string;
@@ -32,17 +33,32 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate }: Emai
   const [subject, setSubject] = useState(emailTemplate.subject);
   const [message, setMessage] = useState(emailTemplate.defaultMessage);
   const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [attachment, setAttachment] = useState<File | null>(null);
   const fireConfetti = useConfetti();
 
   const handleSendEmail = async () => {
     if (!email) {
-      toast.error("Veuillez saisir une adresse email");
+      setError("Veuillez saisir une adresse email");
       return;
     }
 
+    setError(null);
     setIsSending(true);
 
     try {
+      // Convert file to base64 if attachment exists
+      let attachmentData = null;
+      if (attachment) {
+        const buffer = await attachment.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        attachmentData = {
+          filename: attachment.name,
+          content: base64,
+          contentType: attachment.type,
+        };
+      }
+
       const response = await fetch(`/api/send-${type === 'quote' ? 'invoice' : 'billing-invoice'}`, {
         method: "POST",
         headers: {
@@ -53,26 +69,38 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate }: Emai
           subject,
           message,
           invoice: document,
+          attachment: attachmentData,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Erreur lors de l'envoi de l'email");
+        // Handle detailed error from API
+        const errorMessage = data?.error?.message || `Erreur lors de l'envoi de l'email (${response.status})`;
+        setError(errorMessage);
+        return;
       }
 
       fireConfetti();
       toast.success(`${type === 'quote' ? 'Devis' : 'Facture'} envoyé${type === 'quote' ? '' : 'e'} avec succès !`);
       onEmailSent();
       setIsOpen(false);
-    } catch (error) {
-      toast.error("Erreur lors de l'envoi de l'email");
+    } catch (err) {
+      setError("Erreur lors de l'envoi de l'email. Veuillez vérifier votre connexion.");
+      console.error("Email send error:", err);
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) {
+        setError(null);
+      }
+    }}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="w-full sm:w-auto">
           <Mail className="w-4 h-4 mr-2" />
@@ -109,6 +137,14 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate }: Emai
           <div className="flex-1 overflow-y-auto min-h-0">
             <TabsContent value="edit" className="p-6 pt-4 m-0">
               <div className="space-y-4">
+                {error && (
+                  <Alert className="border-red-200 bg-red-50 dark:border-red-900/20 dark:bg-red-950/20">
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    <AlertDescription className="ml-2 text-red-800 dark:text-red-300">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="email">Adresse email du destinataire</Label>
                   <Input
@@ -135,8 +171,45 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate }: Emai
                     id="message"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    className="min-h-[300px] font-mono text-sm resize-none dark:bg-slate-800 dark:border-slate-600 dark:text-white"
+                    className="min-h-[250px] font-mono text-sm resize-none dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="attachment">Pièce jointe</Label>
+                  <div className="flex items-center gap-2">
+                    <label
+                      htmlFor="attachment"
+                      className="flex items-center gap-2 px-4 py-2 border border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex-1"
+                    >
+                      <Paperclip className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {attachment ? attachment.name : "Ajouter un fichier (PDF, image...)"}
+                      </span>
+                      <input
+                        id="attachment"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                        onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                    {attachment && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAttachment(null)}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {attachment && (
+                    <p className="text-xs text-muted-foreground">
+                      {(attachment.size / 1024).toFixed(1)} Ko
+                    </p>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -173,9 +246,12 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate }: Emai
                       ))}
                     </div>
                   </div>
-                  <div className="text-sm text-muted-foreground mt-8 pt-4 border-t">
-                    <p>Un fichier PDF sera joint à cet email</p>
-                  </div>
+                  {attachment && (
+                    <div className="text-sm text-muted-foreground mt-8 pt-4 border-t flex items-center gap-2">
+                      <Paperclip className="w-4 h-4" />
+                      <p>Pièce jointe : {attachment.name}</p>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>

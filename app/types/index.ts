@@ -6,6 +6,14 @@ export interface Company {
   logoSize?: "small" | "medium" | "large";
 }
 
+export interface PaymentAccount {
+  id: string;
+  name: string;
+  iban: string;
+  bic: string;
+  accountHolder: string;
+}
+
 export interface Service {
   id: string;
   quantity: number;
@@ -32,6 +40,7 @@ export interface Invoice {
   remainingBalance: number;
   paymentTerms: string;
   deliveryTime: string;
+  paymentAccount?: PaymentAccount;
   status: "draft" | "sent" | "accepted" | "rejected";
   createdAt: Date;
   currency?: string;
@@ -64,6 +73,7 @@ export interface BillingInvoice {
   paymentStatus: "pending" | "partial" | "paid";
   paymentDate?: string;
   paymentMethod?: string;
+  paymentAccount?: PaymentAccount;
   notes?: string;
   createdAt: Date;
   quoteNumber: string;

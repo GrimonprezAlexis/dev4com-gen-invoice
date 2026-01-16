@@ -15,25 +15,22 @@ export function BillingEmailDialog({ invoice, onEmailSent }: BillingEmailDialogP
       type="billing"
       onEmailSent={onEmailSent}
       emailTemplate={{
-        from: "factures@dev4ecom.com",
+        from: "contact@dev4com.com",
         subject: `Facture ${invoice.number} - ${invoice.company.name}`,
         defaultMessage: `
-Cher client,
+Hello,
 
-Veuillez trouver ci-joint la facture ${invoice.number} correspondant au devis ${invoice.quoteNumber}.
+Vous trouverez ci-joint la facture ${invoice.number} correspondant à votre commande.
 
-Détails de la facture :
+Résumé de la facture :
 • Montant HT : ${invoice.totalAmount.toLocaleString('fr-FR')} €
 • TVA (${invoice.taxRate}%) : ${invoice.taxAmount.toLocaleString('fr-FR')} €
 • Montant TTC : ${invoice.totalWithTax.toLocaleString('fr-FR')} €
-• Date d'échéance : ${new Date(invoice.dueDate).toLocaleDateString()}
+• Date d'échéance : ${new Date(invoice.dueDate).toLocaleDateString('fr-FR')}
 
-Services facturés :
-${invoice.services.map(service => `• ${service.description} : ${service.quantity} × ${service.unitPrice.toLocaleString('fr-FR')} € = ${service.amount.toLocaleString('fr-FR')} €`).join('\n')}
+Si vous avez des questions concernant cette facture, n'hésitez pas à me contacter.
 
-${invoice.notes ? `\nNotes :\n${invoice.notes}` : ''}
-
-Je reste à votre disposition pour toute information complémentaire.
+Je reste à votre disposition pour tout complément d'information.
 
 Cordialement,
 ${invoice.company.name}
