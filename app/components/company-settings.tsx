@@ -10,8 +10,11 @@ import { toast } from "sonner";
 import { Upload, X, Plus, Trash2, CreditCard } from "lucide-react";
 import { saveCompany, getCompany, savePaymentAccount, getPaymentAccounts, deletePaymentAccount } from "@/lib/firebase";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/contexts/auth-context";
+import { Database, Loader2 } from "lucide-react";
 
 export function CompanySettings() {
+  const { user } = useAuth();
   const [company, setCompany] = useState<Company>({
     name: "",
     address: "",
@@ -27,14 +30,17 @@ export function CompanySettings() {
   });
   const [isAddingAccount, setIsAddingAccount] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMigrating, setIsMigrating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!user) return;
+
     const loadData = async () => {
       try {
         const [companyData, accountsData] = await Promise.all([
-          getCompany(),
-          getPaymentAccounts(),
+          getCompany(user.uid),
+          getPaymentAccounts(user.uid),
         ]);
         if (companyData) {
           setCompany(companyData);
@@ -48,11 +54,12 @@ export function CompanySettings() {
       }
     };
     loadData();
-  }, []);
+  }, [user]);
 
   const handleSave = async () => {
+    if (!user) return;
     try {
-      await saveCompany(company);
+      await saveCompany(company, user.uid);
       toast.success("Informations de l'entreprise mises à jour");
     } catch (error) {
       console.error("Error saving company data:", error);
@@ -90,6 +97,7 @@ export function CompanySettings() {
   };
 
   const handleAddPaymentAccount = async () => {
+    if (!user) return;
     if (!newAccount.name || !newAccount.iban || !newAccount.bic || !newAccount.accountHolder) {
       toast.error("Veuillez remplir tous les champs du compte de paiement");
       return;
@@ -100,7 +108,7 @@ export function CompanySettings() {
         ...newAccount,
         id: Date.now().toString(),
       };
-      await savePaymentAccount(account);
+      await savePaymentAccount(account, user.uid);
       setPaymentAccounts((prev) => [...prev, account]);
       setNewAccount({ name: "", iban: "", bic: "", accountHolder: "" });
       setIsAddingAccount(false);
@@ -119,6 +127,38 @@ export function CompanySettings() {
     } catch (error) {
       console.error("Error deleting payment account:", error);
       toast.error("Erreur lors de la suppression du compte de paiement");
+    }
+  };
+
+  const handleMigrateData = async () => {
+    if (!user) return;
+
+    setIsMigrating(true);
+    try {
+      // Call the server-side migration API
+      const response = await fetch("/api/migrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.uid }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Migration failed");
+      }
+
+      toast.success(result.message || "Migration des données terminée avec succès !");
+
+      // Reload the page to refresh all data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error("Error migrating data:", error);
+      toast.error("Erreur lors de la migration des données");
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -345,6 +385,50 @@ export function CompanySettings() {
             </div>
           )}
         </div>
+
+        {/* Data Migration Section - Only visible for admin user */}
+        {user?.uid === "YmRZEzDugpNn8Vei2qN1vd3wuOA2" && (
+          <>
+            <Separator className="my-8" />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                <h3 className="text-lg font-semibold">Migration des données</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Importez toutes les données existantes de la base de données et associez-les à votre compte utilisateur.
+                Cette action va récupérer tous les devis, factures, modèles et comptes de paiement non attribués.
+              </p>
+              <div className="p-4 border rounded-lg bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                  <strong>Attention :</strong> Cette action va associer toutes les données existantes sans userId à votre compte.
+                  Assurez-vous d'être le propriétaire de ces données.
+                </p>
+                <Button
+                  onClick={handleMigrateData}
+                  disabled={isMigrating}
+                  variant="outline"
+                  className="border-amber-500 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900"
+                >
+                  {isMigrating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Migration en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="mr-2 h-4 w-4" />
+                      Importer les données existantes
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                ID utilisateur : {user.uid}
+              </p>
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );

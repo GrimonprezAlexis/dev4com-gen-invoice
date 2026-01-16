@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { InvoiceForm as BaseInvoiceForm } from "../shared/invoice-form";
 import { Invoice, Company } from "@/app/types";
 import { getCompany } from "@/lib/firebase";
+import { useAuth } from "@/contexts/auth-context";
 
 interface QuoteFormProps {
   onSave: (invoice: Invoice) => void;
@@ -11,13 +12,15 @@ interface QuoteFormProps {
 }
 
 export function QuoteForm({ onSave, initialData }: QuoteFormProps) {
+  const { user } = useAuth();
   const [companyInfo, setCompanyInfo] = useState<Company | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     const loadCompany = async () => {
       try {
-        const companyData = await getCompany();
+        const companyData = await getCompany(user.uid);
         if (companyData) {
           setCompanyInfo(companyData);
         }
@@ -28,7 +31,7 @@ export function QuoteForm({ onSave, initialData }: QuoteFormProps) {
       }
     };
     loadCompany();
-  }, []);
+  }, [user]);
 
   const handleSave = (invoice: Invoice) => {
     if (companyInfo) {

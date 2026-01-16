@@ -21,6 +21,7 @@ import { TemplateSelector } from "../template-selector";
 import { AIRewriteDialog } from "../ai-rewrite-dialog";
 import { getPaymentAccounts } from "@/lib/firebase";
 import { CreditCard } from "lucide-react";
+import { useAuth } from "@/contexts/auth-context";
 
 interface InvoiceFormProps {
   onSave: (invoice: Invoice) => void;
@@ -35,6 +36,7 @@ export function InvoiceForm({
   type,
   companyInfo,
 }: InvoiceFormProps) {
+  const { user } = useAuth();
   const [services, setServices] = useState<Service[]>([
     {
       id: crypto.randomUUID(),
@@ -64,9 +66,10 @@ export function InvoiceForm({
 
   // Load payment accounts
   useEffect(() => {
+    if (!user) return;
     const loadPaymentAccounts = async () => {
       try {
-        const accounts = await getPaymentAccounts();
+        const accounts = await getPaymentAccounts(user.uid);
         setPaymentAccounts(accounts);
         // If editing and has payment account, set it
         if (initialData?.paymentAccount) {
@@ -77,7 +80,7 @@ export function InvoiceForm({
       }
     };
     loadPaymentAccounts();
-  }, []);
+  }, [user]);
 
   // Synchronise la devise si on édite un devis existant
   useEffect(() => {

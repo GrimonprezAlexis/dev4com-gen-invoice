@@ -213,7 +213,7 @@ export async function PATCH(
 
     // Send confirmation emails if quote is accepted
     if (status === "accepted" && signature) {
-      const quote = { ...quoteData, id: docSnap.id };
+      const quote = { ...quoteData, id: docSnap.id } as any;
 
       try {
         // Send confirmation to client

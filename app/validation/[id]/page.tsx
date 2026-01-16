@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Invoice } from "@/app/types";
-import { CheckCircle2, FileText, PenLine, Loader2 } from "lucide-react";
+import { CheckCircle2, FileText, PenLine, Loader2, Clock, AlertTriangle } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export default function ValidationPage() {
@@ -21,6 +21,7 @@ export default function ValidationPage() {
   const [email, setEmail] = useState("");
   const [isSigning, setIsSigning] = useState(false);
   const [isValidated, setIsValidated] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
   const [step, setStep] = useState<"preview" | "sign" | "success">("preview");
 
   useEffect(() => {
@@ -32,6 +33,17 @@ export default function ValidationPage() {
         }
         const data = await response.json();
         setQuote(data);
+
+        // Check if quote has expired
+        if (data.validUntil) {
+          const validUntilDate = new Date(data.validUntil);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Reset time to start of day
+
+          if (validUntilDate < today) {
+            setIsExpired(true);
+          }
+        }
 
         if (data.status === "accepted") {
           setIsValidated(true);
@@ -138,6 +150,43 @@ export default function ValidationPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Devis introuvable</h1>
           <p className="text-slate-600">{error}</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isExpired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+        <Card className="max-w-md w-full p-8 text-center bg-slate-900 border-0">
+          <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Clock className="w-12 h-12 text-amber-400" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-3">
+            Lien expiré
+          </h1>
+          <p className="text-lg text-slate-300 mb-6">
+            Le devis <span className="font-semibold text-blue-400">{quote.number}</span> n'est plus valide.
+          </p>
+          <div className="bg-slate-800 rounded-xl p-6 mb-6 border border-slate-700">
+            <div className="flex items-center justify-center gap-2 text-amber-400 mb-3">
+              <AlertTriangle className="w-5 h-5" />
+              <span className="font-medium">Date de validité dépassée</span>
+            </div>
+            <p className="text-slate-400 text-sm">
+              Ce devis était valide jusqu'au{" "}
+              <span className="text-white font-medium">
+                {new Date(quote.validUntil).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric"
+                })}
+              </span>
+            </p>
+          </div>
+          <p className="text-slate-400 text-sm">
+            Veuillez contacter <span className="text-blue-400">{quote.company.name}</span> pour obtenir un nouveau devis.
+          </p>
         </Card>
       </div>
     );

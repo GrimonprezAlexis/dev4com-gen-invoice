@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Invoice } from "../types";
 import { toast } from "sonner";
 import { getTemplates, saveTemplate, deleteTemplate } from "@/lib/firebase";
+import { useAuth } from "@/contexts/auth-context";
 
 interface TemplateSelectorProps {
   onSelectTemplate: (template: Invoice) => void;
@@ -29,6 +30,7 @@ const TEMPLATE_CATEGORIES = [
 ];
 
 export function TemplateSelector({ onSelectTemplate, currentInvoice }: TemplateSelectorProps) {
+  const { user } = useAuth();
   const [templates, setTemplates] = useState<Invoice[]>([]);
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
@@ -39,12 +41,15 @@ export function TemplateSelector({ onSelectTemplate, currentInvoice }: TemplateS
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadTemplates();
-  }, []);
+    if (user) {
+      loadTemplates();
+    }
+  }, [user]);
 
   const loadTemplates = async () => {
+    if (!user) return;
     try {
-      const fetchedTemplates = await getTemplates();
+      const fetchedTemplates = await getTemplates(user.uid);
       setTemplates(fetchedTemplates);
     } catch (error) {
       console.error("Error loading templates:", error);
@@ -55,7 +60,7 @@ export function TemplateSelector({ onSelectTemplate, currentInvoice }: TemplateS
   };
 
   const handleSaveTemplate = async () => {
-    if (!currentInvoice) return;
+    if (!currentInvoice || !user) return;
     if (!templateName.trim()) {
       toast.error("Veuillez saisir un nom pour le modèle");
       return;
@@ -74,9 +79,9 @@ export function TemplateSelector({ onSelectTemplate, currentInvoice }: TemplateS
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       };
 
-      await saveTemplate(template);
+      await saveTemplate(template, user.uid);
       await loadTemplates();
-      
+
       setTemplateName("");
       setTemplateDescription("");
       setTemplateCategory("Autre");

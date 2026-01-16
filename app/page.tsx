@@ -11,6 +11,7 @@ import {
   Columns,
   Menu,
   Receipt,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +36,8 @@ import { BillingInvoice, Invoice } from "./types";
 import { useConfetti } from "./hooks/use-confetti";
 import { DemoButton } from "./components/demo-button";
 import { ThemeToggle } from "./components/theme-toggle";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { useAuth } from "@/contexts/auth-context";
 
 import {
   saveInvoice,
@@ -46,7 +49,8 @@ import {
   updateInvoice,
 } from "@/lib/firebase";
 
-export default function Home() {
+function HomeContent() {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("invoices");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -63,9 +67,11 @@ export default function Home() {
   const fireConfetti = useConfetti();
 
   useEffect(() => {
+    if (!user) return;
+
     const loadInvoices = async () => {
       try {
-        const fetchedInvoices = await getInvoices();
+        const fetchedInvoices = await getInvoices(user.uid);
         setInvoices(fetchedInvoices);
       } catch (error) {
         console.error("Error loading invoices:", error);
@@ -75,7 +81,7 @@ export default function Home() {
 
     const loadBillingInvoices = async () => {
       try {
-        const fetchedBillingInvoices = await getBillingInvoices();
+        const fetchedBillingInvoices = await getBillingInvoices(user.uid);
         setBillingInvoices(fetchedBillingInvoices);
       } catch (error) {
         console.error("Error loading billing invoices:", error);
@@ -87,11 +93,12 @@ export default function Home() {
 
     loadInvoices();
     loadBillingInvoices();
-  }, []);
+  }, [user]);
 
   const handleSaveInvoice = async (invoice: Invoice) => {
+    if (!user) return;
     try {
-      await saveInvoice(invoice);
+      await saveInvoice(invoice, user.uid);
 
       if (editingInvoice) {
         const newInvoices = invoices.map((inv) =>
@@ -113,8 +120,9 @@ export default function Home() {
   };
 
   const handleUpdateBillingInvoice = async (invoice: BillingInvoice) => {
+    if (!user) return;
     try {
-      await saveBillingInvoice(invoice);
+      await saveBillingInvoice(invoice, user.uid);
       const newBillingInvoices = billingInvoices.map((inv) =>
         inv.id === invoice.id ? invoice : inv
       );
@@ -127,15 +135,26 @@ export default function Home() {
   };
 
   const handleGenerateInvoice = async (invoice: BillingInvoice) => {
+    if (!user) return;
     try {
-      await saveBillingInvoice(invoice);
-      const updatedBillingInvoices = await getBillingInvoices();
+      await saveBillingInvoice(invoice, user.uid);
+      const updatedBillingInvoices = await getBillingInvoices(user.uid);
       setBillingInvoices(updatedBillingInvoices);
       setActiveTab("billing");
       toast.success("Facture générée avec succès !");
     } catch (error) {
       console.error("Error generating billing invoice:", error);
       toast.error("Erreur lors de la génération de la facture");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Déconnexion réussie");
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast.error("Erreur lors de la déconnexion");
     }
   };
 
@@ -235,6 +254,9 @@ export default function Home() {
             {viewMode === "grid" ? "Vue divisée" : "Vue grille"}
           </Button>
           <DemoButton />
+          <Button variant="outline" onClick={handleLogout} title="Déconnexion">
+            <LogOut className="h-4 w-4" />
+          </Button>
           <Dialog
             open={isDialogOpen}
             onOpenChange={(open) => {
@@ -283,6 +305,10 @@ export default function Home() {
               {viewMode === "grid" ? "Vue divisée" : "Vue grille"}
             </Button>
             <DemoButton />
+            <Button variant="outline" onClick={handleLogout} className="w-full">
+              <LogOut className="mr-2 h-4 w-4" />
+              Déconnexion
+            </Button>
             <Dialog
               open={isDialogOpen}
               onOpenChange={(open) => {
@@ -541,5 +567,13 @@ export default function Home() {
 
       <Toaster />
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <ProtectedRoute>
+      <HomeContent />
+    </ProtectedRoute>
   );
 }

@@ -16,6 +16,7 @@ import {
 } from "chart.js";
 import { Invoice, BillingInvoice } from "../types";
 import { getInvoices, getBillingInvoices } from "@/lib/firebase";
+import { useAuth } from "@/contexts/auth-context";
 import {
   format,
   subMonths,
@@ -56,16 +57,19 @@ const chartOptions: ChartOptions<"bar"> = {
 };
 
 export function AnalyticsDashboard() {
+  const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [billingInvoices, setBillingInvoices] = useState<BillingInvoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+
     const loadData = async () => {
       try {
         const [fetchedInvoices, fetchedBillingInvoices] = await Promise.all([
-          getInvoices(),
-          getBillingInvoices(),
+          getInvoices(user.uid),
+          getBillingInvoices(user.uid),
         ]);
         setInvoices(fetchedInvoices);
         setBillingInvoices(fetchedBillingInvoices);
@@ -77,7 +81,7 @@ export function AnalyticsDashboard() {
     };
 
     loadData();
-  }, []);
+  }, [user]);
 
   // Calculate key metrics
   const acceptedInvoices = invoices.filter((inv) => inv.status === "accepted");

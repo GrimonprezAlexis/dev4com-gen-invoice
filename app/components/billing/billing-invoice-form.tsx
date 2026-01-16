@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BillingInvoice, Invoice, Company } from "@/app/types";
 import { getCompany } from "@/lib/firebase";
+import { useAuth } from "@/contexts/auth-context";
 
 interface BillingInvoiceFormProps {
   quote: Invoice;
@@ -16,10 +17,11 @@ interface BillingInvoiceFormProps {
 }
 
 export function BillingInvoiceForm({ quote, invoice, onSave }: BillingInvoiceFormProps) {
+  const { user } = useAuth();
   const [taxRate, setTaxRate] = useState(20);
   const [companyInfo, setCompanyInfo] = useState<Company | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const { register, handleSubmit } = useForm<BillingInvoice>({
     defaultValues: invoice || {
       id: crypto.randomUUID(),
@@ -41,9 +43,10 @@ export function BillingInvoiceForm({ quote, invoice, onSave }: BillingInvoiceFor
   });
 
   useEffect(() => {
+    if (!user) return;
     const loadCompany = async () => {
       try {
-        const companyData = await getCompany();
+        const companyData = await getCompany(user.uid);
         if (companyData) {
           setCompanyInfo(companyData);
         }
@@ -54,7 +57,7 @@ export function BillingInvoiceForm({ quote, invoice, onSave }: BillingInvoiceFor
       }
     };
     loadCompany();
-  }, []);
+  }, [user]);
 
   const onSubmit = (data: BillingInvoice) => {
     const taxAmount = (data.totalAmount * taxRate) / 100;

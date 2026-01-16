@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import {
   getFirestore,
   collection,
@@ -11,6 +11,7 @@ import {
   where,
   orderBy,
   getDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { Invoice, BillingInvoice, Company, PaymentAccount } from "@/app/types";
 
@@ -24,8 +25,8 @@ const firebaseConfig = {
   measurementId: "G-3D57QJVRBN",
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase only if not already initialized
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const db = getFirestore(app);
 
 // Collection references
@@ -36,11 +37,12 @@ const templatesCollection = collection(db, "templates");
 const paymentAccountsCollection = collection(db, "paymentAccounts");
 
 // Template operations
-export const saveTemplate = async (template: Invoice) => {
+export const saveTemplate = async (template: Invoice, userId: string) => {
   try {
     const docRef = doc(templatesCollection, template.id);
     await setDoc(docRef, {
       ...template,
+      userId,
       isTemplate: true,
       createdAt: new Date(),
     });
@@ -51,38 +53,24 @@ export const saveTemplate = async (template: Invoice) => {
   }
 };
 
-export const getTemplates = async () => {
+export const getTemplates = async (userId: string) => {
   try {
-    // First try with the composite index
-    try {
-      const q = query(
-        templatesCollection,
-        where("isTemplate", "==", true),
-        orderBy("createdAt", "desc")
-      );
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map((doc) => ({
+    // Simple query by userId only, filter isTemplate client-side
+    const q = query(templatesCollection, where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+
+    const templates = querySnapshot.docs
+      .map((doc) => ({
         ...doc.data(),
         id: doc.id,
         date: doc.data().date,
         validUntil: doc.data().validUntil,
-        createdAt: doc.data().createdAt.toDate(),
-      })) as Invoice[];
-    } catch (indexError) {
-      // If composite index error, fallback to simple query
-      console.warn(
-        "Composite index not available, falling back to simple query"
-      );
-      const q = query(templatesCollection, where("isTemplate", "==", true));
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-        date: doc.data().date,
-        validUntil: doc.data().validUntil,
-        createdAt: doc.data().createdAt.toDate(),
-      })) as Invoice[];
-    }
+        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+      }))
+      .filter((t: any) => t.isTemplate === true) as Invoice[];
+
+    // Sort by createdAt desc client-side
+    return templates.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error) {
     console.error("Error getting templates:", error);
     throw error;
@@ -100,10 +88,10 @@ export const deleteTemplate = async (id: string) => {
 };
 
 // Company operations
-export const saveCompany = async (company: Company) => {
+export const saveCompany = async (company: Company, userId: string) => {
   try {
-    const docRef = doc(companyCollection, "main");
-    await setDoc(docRef, company);
+    const docRef = doc(companyCollection, userId);
+    await setDoc(docRef, { ...company, userId });
     return company;
   } catch (error) {
     console.error("Error saving company:", error);
@@ -111,9 +99,9 @@ export const saveCompany = async (company: Company) => {
   }
 };
 
-export const getCompany = async (): Promise<Company | null> => {
+export const getCompany = async (userId: string): Promise<Company | null> => {
   try {
-    const docRef = doc(companyCollection, "main");
+    const docRef = doc(companyCollection, userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return docSnap.data() as Company;
@@ -126,11 +114,12 @@ export const getCompany = async (): Promise<Company | null> => {
 };
 
 // Invoice operations
-export const saveInvoice = async (invoice: Invoice) => {
+export const saveInvoice = async (invoice: Invoice, userId: string) => {
   try {
     const docRef = doc(db, "invoices", invoice.id);
     await setDoc(docRef, {
       ...invoice,
+      userId,
       currency: invoice.currency || "EUR",
       showTax: typeof invoice.showTax === "boolean" ? invoice.showTax : false,
       createdAt: new Date(),
@@ -169,18 +158,34 @@ export const deleteInvoice = async (id: string) => {
   }
 };
 
-export const getInvoices = async () => {
+export const getInvoices = async (userId: string) => {
   try {
-    const q = query(invoicesCollection, orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
+    // Try with orderBy first, fallback to simple query if index doesn't exist
+    let querySnapshot;
+    try {
+      const q = query(
+        invoicesCollection,
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc")
+      );
+      querySnapshot = await getDocs(q);
+    } catch (indexError) {
+      console.warn("Index not available, using simple query");
+      const q = query(invoicesCollection, where("userId", "==", userId));
+      querySnapshot = await getDocs(q);
+    }
+
+    const invoices = querySnapshot.docs.map((doc) => ({
       ...doc.data(),
       id: doc.id,
       currency: doc.data().currency || "EUR",
-      date: doc.data().date.toDate().toISOString(),
-      validUntil: doc.data().validUntil.toDate().toISOString(),
-      createdAt: doc.data().createdAt.toDate(),
+      date: doc.data().date?.toDate?.()?.toISOString() || doc.data().date,
+      validUntil: doc.data().validUntil?.toDate?.()?.toISOString() || doc.data().validUntil,
+      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
     })) as Invoice[];
+
+    // Sort by createdAt desc client-side
+    return invoices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error) {
     console.error("Error getting invoices:", error);
     throw error;
@@ -188,11 +193,12 @@ export const getInvoices = async () => {
 };
 
 // Billing Invoice operations
-export const saveBillingInvoice = async (invoice: BillingInvoice) => {
+export const saveBillingInvoice = async (invoice: BillingInvoice, userId: string) => {
   try {
     // First, find the quote by its number
     const q = query(
       invoicesCollection,
+      where("userId", "==", userId),
       where("number", "==", invoice.quoteNumber)
     );
     const querySnapshot = await getDocs(q);
@@ -207,6 +213,7 @@ export const saveBillingInvoice = async (invoice: BillingInvoice) => {
     const docRef = doc(db, "billingInvoices", invoice.id);
     await setDoc(docRef, {
       ...invoice,
+      userId,
       currency: invoice.currency || "EUR",
       createdAt: new Date(),
       date: new Date(invoice.date),
@@ -254,18 +261,34 @@ export const deleteBillingInvoice = async (id: string) => {
   }
 };
 
-export const getBillingInvoices = async () => {
+export const getBillingInvoices = async (userId: string) => {
   try {
-    const q = query(billingInvoicesCollection, orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
+    // Try with orderBy first, fallback to simple query if index doesn't exist
+    let querySnapshot;
+    try {
+      const q = query(
+        billingInvoicesCollection,
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc")
+      );
+      querySnapshot = await getDocs(q);
+    } catch (indexError) {
+      console.warn("Index not available, using simple query");
+      const q = query(billingInvoicesCollection, where("userId", "==", userId));
+      querySnapshot = await getDocs(q);
+    }
+
+    const invoices = querySnapshot.docs.map((doc) => ({
       ...doc.data(),
       id: doc.id,
       currency: doc.data().currency || "EUR",
-      date: doc.data().date.toDate().toISOString(),
-      dueDate: doc.data().dueDate.toDate().toISOString(),
-      createdAt: doc.data().createdAt.toDate(),
+      date: doc.data().date?.toDate?.()?.toISOString() || doc.data().date,
+      dueDate: doc.data().dueDate?.toDate?.()?.toISOString() || doc.data().dueDate,
+      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
     })) as BillingInvoice[];
+
+    // Sort by createdAt desc client-side
+    return invoices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error) {
     console.error("Error getting billing invoices:", error);
     throw error;
@@ -273,10 +296,10 @@ export const getBillingInvoices = async () => {
 };
 
 // Payment Account operations
-export const savePaymentAccount = async (account: PaymentAccount) => {
+export const savePaymentAccount = async (account: PaymentAccount, userId: string) => {
   try {
     const docRef = doc(paymentAccountsCollection, account.id);
-    await setDoc(docRef, account);
+    await setDoc(docRef, { ...account, userId });
     return account;
   } catch (error) {
     console.error("Error saving payment account:", error);
@@ -284,9 +307,10 @@ export const savePaymentAccount = async (account: PaymentAccount) => {
   }
 };
 
-export const getPaymentAccounts = async (): Promise<PaymentAccount[]> => {
+export const getPaymentAccounts = async (userId: string): Promise<PaymentAccount[]> => {
   try {
-    const querySnapshot = await getDocs(paymentAccountsCollection);
+    const q = query(paymentAccountsCollection, where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map((doc) => ({
       ...doc.data(),
       id: doc.id,
@@ -303,6 +327,71 @@ export const deletePaymentAccount = async (id: string) => {
     await deleteDoc(docRef);
   } catch (error) {
     console.error("Error deleting payment account:", error);
+    throw error;
+  }
+};
+
+// Migration function to assign existing data to a user
+export const migrateDataToUser = async (userId: string) => {
+  try {
+    const stats = {
+      invoices: 0,
+      billingInvoices: 0,
+      templates: 0,
+      paymentAccounts: 0,
+      company: false,
+    };
+
+    // Migrate ALL invoices (devis) - assign to user
+    const invoicesSnapshot = await getDocs(invoicesCollection);
+    for (const docSnapshot of invoicesSnapshot.docs) {
+      await updateDoc(doc(db, "invoices", docSnapshot.id), { userId });
+      stats.invoices++;
+    }
+    console.log(`Migrated ${stats.invoices} invoices`);
+
+    // Migrate ALL billing invoices (factures) - assign to user
+    const billingSnapshot = await getDocs(billingInvoicesCollection);
+    for (const docSnapshot of billingSnapshot.docs) {
+      await updateDoc(doc(db, "billingInvoices", docSnapshot.id), { userId });
+      stats.billingInvoices++;
+    }
+    console.log(`Migrated ${stats.billingInvoices} billing invoices`);
+
+    // Migrate ALL templates - assign to user
+    const templatesSnapshot = await getDocs(templatesCollection);
+    for (const docSnapshot of templatesSnapshot.docs) {
+      await updateDoc(doc(db, "templates", docSnapshot.id), { userId });
+      stats.templates++;
+    }
+    console.log(`Migrated ${stats.templates} templates`);
+
+    // Migrate ALL payment accounts - assign to user
+    const paymentsSnapshot = await getDocs(paymentAccountsCollection);
+    for (const docSnapshot of paymentsSnapshot.docs) {
+      await updateDoc(doc(db, "paymentAccounts", docSnapshot.id), { userId });
+      stats.paymentAccounts++;
+    }
+    console.log(`Migrated ${stats.paymentAccounts} payment accounts`);
+
+    // Migrate company data (copy from 'main' to userId if exists)
+    const mainCompanyRef = doc(companyCollection, "main");
+    const mainCompanySnap = await getDoc(mainCompanyRef);
+    if (mainCompanySnap.exists()) {
+      const companyData = mainCompanySnap.data();
+      await setDoc(doc(companyCollection, userId), { ...companyData, userId });
+      stats.company = true;
+      console.log("Migrated company data");
+    }
+
+    console.log("Migration completed:", stats);
+    return {
+      success: true,
+      message: `Migration terminée: ${stats.invoices} devis, ${stats.billingInvoices} factures, ${stats.templates} modèles, ${stats.paymentAccounts} comptes de paiement`,
+      stats
+    };
+  } catch (error) {
+    console.error("Error migrating data:", error);
     throw error;
   }
 };
