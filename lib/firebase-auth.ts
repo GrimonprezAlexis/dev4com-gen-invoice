@@ -64,3 +64,9 @@ export const onAuthChange = (callback: (user: User | null) => void) => {
     if (unsubscribe) unsubscribe();
   };
 };
+
+export const resetPassword = async (email: string) => {
+  const { sendPasswordResetEmail } = await import("firebase/auth");
+  const authInstance = await getFirebaseAuth();
+  return sendPasswordResetEmail(authInstance, email);
+};
