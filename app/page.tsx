@@ -12,8 +12,18 @@ import {
   Menu,
   Receipt,
   LogOut,
+  Search,
+  ArrowUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -64,6 +74,8 @@ function HomeContent() {
   const [isBillingPreviewOpen, setIsBillingPreviewOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientSortBy, setClientSortBy] = useState<"name" | "amount" | "quotes">("amount");
   const fireConfetti = useConfetti();
 
   useEffect(() => {
@@ -424,7 +436,7 @@ function HomeContent() {
             />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-4 xl:col-span-3">
+              <div className="lg:col-span-5">
                 <ScrollArea className="h-[calc(100vh-250px)]">
                   <div className="pr-4">
                     <QuoteList
@@ -448,12 +460,12 @@ function HomeContent() {
                   </div>
                 </ScrollArea>
               </div>
-              <div className="lg:col-span-8 xl:col-span-9 h-[calc(100vh-250px)] overflow-hidden">
+              <div className="lg:col-span-7 h-[calc(100vh-250px)] overflow-hidden border rounded-lg bg-slate-50 dark:bg-slate-900/50">
                 {selectedInvoice ? (
                   <QuotePreview invoice={selectedInvoice} />
                 ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">
-                    Sélectionnez un devis pour afficher l&apos;aperçu
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Sélectionnez un devis
                   </div>
                 )}
               </div>
@@ -477,7 +489,7 @@ function HomeContent() {
             />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-4 xl:col-span-3">
+              <div className="lg:col-span-5">
                 <ScrollArea className="h-[calc(100vh-250px)]">
                   <div className="pr-4">
                     <BillingList
@@ -495,17 +507,12 @@ function HomeContent() {
                   </div>
                 </ScrollArea>
               </div>
-              <div className="lg:col-span-8 xl:col-span-9 h-[calc(100vh-250px)] overflow-hidden">
+              <div className="lg:col-span-7 h-[calc(100vh-250px)] overflow-hidden border rounded-lg bg-slate-50 dark:bg-slate-900/50">
                 {selectedBillingInvoice ? (
                   <BillingPreview invoice={selectedBillingInvoice} />
                 ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>
-                        Sélectionnez une facture pour afficher l&apos;aperçu
-                      </p>
-                    </div>
+                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Sélectionnez une facture
                   </div>
                 )}
               </div>
@@ -514,46 +521,143 @@ function HomeContent() {
         </TabsContent>
 
         <TabsContent value="clients" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from(new Set(invoices.map((inv) => inv.client.siren))).map(
-              (siren) => {
-                const client = invoices.find(
-                  (inv) => inv.client.siren === siren
-                )?.client;
-                const clientInvoices = invoices.filter(
-                  (inv) => inv.client.siren === siren
-                );
-                const totalAmount = clientInvoices.reduce(
-                  (sum, inv) => sum + inv.totalAmount,
-                  0
-                );
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+              <p className="text-xs text-muted-foreground">Total clients</p>
+              <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                {Array.from(new Set(invoices.map((inv) => inv.client.siren))).length}
+              </p>
+            </div>
+            <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+              <p className="text-xs text-muted-foreground">CA Total</p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                {invoices.reduce((sum, inv) => sum + inv.totalAmount, 0).toLocaleString("fr-FR")} €
+              </p>
+            </div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+              <p className="text-xs text-muted-foreground">Devis</p>
+              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                {invoices.length}
+              </p>
+            </div>
+          </div>
 
-                return (
-                  <div key={siren} className="bg-card p-6 rounded-lg shadow-sm">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="font-semibold">{client?.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          SIREN: {client?.siren}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-green-600">
-                          {totalAmount.toLocaleString("fr-FR")} €
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {clientInvoices.length} devis
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {client?.address}
-                    </p>
-                  </div>
+          {/* Compact filters */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative flex-1 min-w-[150px]">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Rechercher un client..."
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+            <Select value={clientSortBy} onValueChange={(v: "name" | "amount" | "quotes") => setClientSortBy(v)}>
+              <SelectTrigger className="w-[110px] h-8 text-xs">
+                <ArrowUpDown className="w-3 h-3 mr-1" />
+                <SelectValue placeholder="Trier" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="amount">Montant</SelectItem>
+                <SelectItem value="name">Nom</SelectItem>
+                <SelectItem value="quotes">Nb devis</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Compact client list */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+            {(() => {
+              // Build client list with aggregated data
+              const clientsMap = new Map<string, {
+                client: typeof invoices[0]["client"];
+                totalAmount: number;
+                quotesCount: number;
+                acceptedCount: number;
+              }>();
+
+              invoices.forEach((inv) => {
+                const existing = clientsMap.get(inv.client.siren);
+                if (existing) {
+                  existing.totalAmount += inv.totalAmount;
+                  existing.quotesCount += 1;
+                  if (inv.status === "accepted") existing.acceptedCount += 1;
+                } else {
+                  clientsMap.set(inv.client.siren, {
+                    client: inv.client,
+                    totalAmount: inv.totalAmount,
+                    quotesCount: 1,
+                    acceptedCount: inv.status === "accepted" ? 1 : 0,
+                  });
+                }
+              });
+
+              let clients = Array.from(clientsMap.values());
+
+              // Filter by search
+              if (clientSearch) {
+                const searchLower = clientSearch.toLowerCase();
+                clients = clients.filter((c) =>
+                  c.client.name.toLowerCase().includes(searchLower) ||
+                  c.client.siren?.toLowerCase().includes(searchLower)
                 );
               }
-            )}
+
+              // Sort
+              clients.sort((a, b) => {
+                switch (clientSortBy) {
+                  case "name":
+                    return a.client.name.localeCompare(b.client.name);
+                  case "amount":
+                    return b.totalAmount - a.totalAmount;
+                  case "quotes":
+                    return b.quotesCount - a.quotesCount;
+                  default:
+                    return 0;
+                }
+              });
+
+              return clients.map(({ client, totalAmount, quotesCount, acceptedCount }) => (
+                <div
+                  key={client.siren}
+                  className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-sm transition-all"
+                >
+                  {/* Avatar */}
+                  <div className="shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
+                    {client?.name?.charAt(0)?.toUpperCase() || "?"}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{client?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {client?.address || `SIREN: ${client?.siren}`}
+                    </p>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="text-right shrink-0">
+                    <p className="font-semibold text-sm text-green-600 dark:text-green-400">
+                      {totalAmount.toLocaleString("fr-FR")} €
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {quotesCount} devis • {acceptedCount} accepté{acceptedCount > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
+
+          {invoices.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              <Building2 className="h-10 w-10 mx-auto mb-3 opacity-40" />
+              <p>Aucun client pour le moment</p>
+              <p className="text-xs mt-1">Créez un devis pour ajouter votre premier client</p>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="analytics">

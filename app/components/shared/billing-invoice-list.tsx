@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,9 +8,9 @@ import {
   Filter,
   Search,
   ArrowUpDown,
-  Calendar,
   Check,
   Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { PDFDownloadButton } from "./pdf-download-button";
 import {
@@ -31,7 +30,6 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
 } from "@/components/ui/dialog";
@@ -71,9 +69,7 @@ export function BillingInvoiceList({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [invoiceToDelete, setInvoiceToDelete] = useState<BillingInvoice | null>(
-    null
-  );
+  const [invoiceToDelete, setInvoiceToDelete] = useState<BillingInvoice | null>(null);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const fireConfetti = useConfetti();
@@ -92,7 +88,6 @@ export function BillingInvoiceList({
   const handleDelete = async () => {
     if (invoiceToDelete) {
       onDelete(invoiceToDelete.id);
-      fireConfetti();
       setIsDeleteDialogOpen(false);
       setInvoiceToDelete(null);
     }
@@ -105,338 +100,191 @@ export function BillingInvoiceList({
   };
 
   const handleToggleSelection = (id: string) => {
-    setSelectedInvoices((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((i) => i !== id);
-      } else {
-        return [...prev, id];
-      }
-    });
+    setSelectedInvoices((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   };
 
-  const handleSelectAll = () => {
-    if (selectedInvoices.length === invoices.length) {
-      setSelectedInvoices([]);
-    } else {
-      setSelectedInvoices(invoices.map((inv) => inv.id));
-    }
-  };
+  // Stats
+  const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalWithTax, 0);
+  const pendingAmount = invoices.filter((inv) => inv.paymentStatus === "pending").reduce((sum, inv) => sum + inv.totalWithTax, 0);
+  const paidCount = invoices.filter((inv) => inv.paymentStatus === "paid").length;
+  const recoveryRate = invoices.length > 0 ? ((paidCount / invoices.length) * 100).toFixed(0) : 0;
 
-  const renderInvoiceCard = (invoice: BillingInvoice) => (
-    <Card
+  const renderCompactCard = (invoice: BillingInvoice) => (
+    <div
       key={invoice.id}
-      className={`p-4 hover:shadow-lg transition-shadow cursor-pointer relative
-        ${
-          viewMode === "split" && selectedInvoice?.id === invoice.id
-            ? "border-blue-500 border-2"
-            : ""
-        }
-        ${
-          isSelectionMode && selectedInvoices.includes(invoice.id)
-            ? "border-blue-500 border-2"
-            : ""
-        }`}
+      className={`flex items-center gap-3 p-3 bg-white dark:bg-slate-900 border rounded-lg hover:shadow-sm transition-all cursor-pointer
+        ${viewMode === "split" && selectedInvoice?.id === invoice.id ? "border-blue-500 ring-1 ring-blue-500" : "border-slate-200 dark:border-slate-700"}
+        ${isSelectionMode && selectedInvoices.includes(invoice.id) ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20" : ""}`}
       onClick={() => {
-        if (isSelectionMode) {
-          handleToggleSelection(invoice.id);
-        } else if (viewMode === "split") {
-          onSelect(invoice);
-        }
+        if (isSelectionMode) handleToggleSelection(invoice.id);
+        else if (viewMode === "split") onSelect(invoice);
       }}
     >
       {isSelectionMode && (
-        <div className="absolute top-2 left-2 z-10">
-          <Checkbox
-            checked={selectedInvoices.includes(invoice.id)}
-            onCheckedChange={() => handleToggleSelection(invoice.id)}
-          />
-        </div>
+        <Checkbox
+          checked={selectedInvoices.includes(invoice.id)}
+          onCheckedChange={() => handleToggleSelection(invoice.id)}
+          className="shrink-0"
+        />
       )}
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-        <div>
-          <p className="font-semibold">{invoice.number}</p>
-          <p className="text-sm text-muted-foreground">{invoice.client.name}</p>
-        </div>
-        <div className="text-left sm:text-right w-full sm:w-auto">
-          <p className="font-bold">
-            {invoice.totalWithTax.toLocaleString("fr-FR")} €
-          </p>
-          <p className="text-sm text-muted-foreground">
-            TVA: {invoice.taxAmount.toLocaleString("fr-FR")} €
-          </p>
-          <span
-            className={`text-xs font-medium px-2 py-1 rounded-full ${
-              invoice.paymentStatus === "paid"
-                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                : invoice.paymentStatus === "partial"
-                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-            }`}
-          >
-            {invoice.paymentStatus === "paid"
-              ? "Payée"
+
+      {/* Main info */}
+      <div className="flex-1 min-w-0">
+        <span className="font-medium text-sm truncate block">{invoice.number}</span>
+        <p className="text-xs text-muted-foreground truncate">{invoice.client.name}</p>
+      </div>
+
+      {/* Amount + TVA */}
+      <div className="text-right shrink-0">
+        <p className="font-semibold text-sm">
+          {invoice.totalWithTax.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          TVA: {invoice.taxAmount.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
+        </p>
+      </div>
+
+      {/* Status */}
+      <div className="shrink-0">
+        <span
+          className={`text-xs font-medium px-2 py-1 rounded-full ${
+            invoice.paymentStatus === "paid"
+              ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
               : invoice.paymentStatus === "partial"
-              ? "Partiel"
-              : "En attente"}
-          </span>
-        </div>
+              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300"
+              : "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+          }`}
+        >
+          {invoice.paymentStatus === "paid" ? "Payée" : invoice.paymentStatus === "partial" ? "Partiel" : "En attente"}
+        </span>
       </div>
-      <div className="text-sm text-muted-foreground mb-4">
-        <div className="flex items-center gap-1">
-          <Calendar className="h-4 w-4" />
-          <p>Émise le: {new Date(invoice.date).toLocaleDateString()}</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Calendar className="h-4 w-4" />
-          <p>Échéance: {new Date(invoice.dueDate).toLocaleDateString()}</p>
-        </div>
-      </div>
+
+      {/* Actions */}
       {!isSelectionMode && (
-        <div className="flex justify-end gap-2">
+        <div className="flex items-center gap-1 shrink-0">
           {viewMode === "grid" && (
             <Button
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={(e) => {
                 e.stopPropagation();
                 onPreview(invoice);
               }}
             >
-              <Eye className="w-4 h-4 mr-2" />
-              Aperçu
+              <Eye className="w-4 h-4" />
             </Button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Actions
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <BillingInvoiceEditDialog
-                invoice={invoice}
-                onUpdate={onUpdate}
-              />
+            <DropdownMenuContent align="end">
+              <BillingInvoiceEditDialog invoice={invoice} onUpdate={onUpdate} />
               <DropdownMenuItem asChild>
                 <PDFDownloadButton
                   document={invoice}
                   type="billing"
                   fileName={`Facture_${invoice.number}.pdf`}
-                  className="w-full text-green-600"
+                  className="w-full"
                 />
               </DropdownMenuItem>
-              <BillingEmailDialog
-                invoice={invoice}
-                onEmailSent={() => onSend?.(invoice)}
-              />
-              <DropdownMenuItem
-                onClick={() => handleMarkAsPaid(invoice)}
-                className="text-green-600"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Marquer comme payé
+              <BillingEmailDialog invoice={invoice} onEmailSent={() => onSend?.(invoice)} />
+              <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)} className="text-green-600">
+                <Check className="w-4 h-4 mr-2" /> Marquer payée
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => handleDeleteClick(invoice, e)}
-                className="text-red-600"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Supprimer
+              <DropdownMenuItem onClick={(e) => handleDeleteClick(invoice, e)} className="text-red-600">
+                <Trash2 className="w-4 h-4 mr-2" /> Supprimer
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       )}
-    </Card>
-  );
-
-  const infoCards = (
-    <div
-      className={`space-y-4 ${
-        viewMode === "split"
-          ? "lg:space-y-4"
-          : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-      }`}
-    >
-      <Card className="p-4 sm:p-6 bg-blue-50 dark:bg-blue-950">
-        <div className="flex flex-col">
-          <h3 className="text-base sm:text-lg font-semibold mb-2">
-            Total des factures
-          </h3>
-          <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
-            {invoices
-              .reduce((sum, inv) => sum + inv.totalWithTax, 0)
-              .toLocaleString("fr-FR")}{" "}
-            €
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {invoices.length} facture{invoices.length > 1 ? "s" : ""}
-          </p>
-        </div>
-      </Card>
-
-      <Card className="p-4 sm:p-6 bg-yellow-50 dark:bg-yellow-950">
-        <div className="flex flex-col">
-          <h3 className="text-base sm:text-lg font-semibold mb-2">
-            En attente de paiement
-          </h3>
-          <p className="text-xl sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-            {invoices
-              .filter((inv) => inv.paymentStatus === "pending")
-              .reduce((sum, inv) => sum + inv.totalWithTax, 0)
-              .toLocaleString("fr-FR")}{" "}
-            €
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {invoices.filter((inv) => inv.paymentStatus === "pending").length}{" "}
-            facture
-            {invoices.filter((inv) => inv.paymentStatus === "pending").length >
-            1
-              ? "s"
-              : ""}
-          </p>
-        </div>
-      </Card>
-
-      <Card
-        className={`p-4 sm:p-6 bg-green-50 dark:bg-green-950 ${
-          viewMode === "split" ? "" : "sm:col-span-2 lg:col-span-1"
-        }`}
-      >
-        <div className="flex flex-col">
-          <h3 className="text-base sm:text-lg font-semibold mb-2">
-            Taux de recouvrement
-          </h3>
-          <p className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
-            {invoices.length > 0
-              ? (
-                  (invoices.filter((inv) => inv.paymentStatus === "paid")
-                    .length /
-                    invoices.length) *
-                  100
-                ).toFixed(1)
-              : 0}
-            %
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {invoices.filter((inv) => inv.paymentStatus === "paid").length}{" "}
-            facture
-            {invoices.filter((inv) => inv.paymentStatus === "paid").length > 1
-              ? "s"
-              : ""}{" "}
-            payée
-            {invoices.filter((inv) => inv.paymentStatus === "paid").length > 1
-              ? "s"
-              : ""}
-          </p>
-        </div>
-      </Card>
     </div>
   );
 
   return (
-    <div className="space-y-6">
-      {infoCards}
-
-      <div className="flex flex-col gap-4">
-        <div className="w-full">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Rechercher par n° de facture, client..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+    <div className="space-y-4">
+      {/* Compact stats row */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+          <p className="text-xs text-muted-foreground">Total</p>
+          <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{totalAmount.toLocaleString("fr-FR")} €</p>
+          <p className="text-[10px] text-muted-foreground">{invoices.length} facture{invoices.length > 1 ? "s" : ""}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Statut" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous</SelectItem>
-              <SelectItem value="pending">En attente</SelectItem>
-              <SelectItem value="partial">Partiel</SelectItem>
-              <SelectItem value="paid">Payé</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={sortBy}
-            onValueChange={(value: "date" | "amount" | "dueDate") =>
-              setSortBy(value)
-            }
-          >
-            <SelectTrigger className="w-[140px]">
-              <ArrowUpDown className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Trier par" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date">Date d'émission</SelectItem>
-              <SelectItem value="amount">Montant</SelectItem>
-              <SelectItem value="dueDate">Échéance</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <DateRangePicker
-            date={dateRange}
-            onSelect={setDateRange}
-            className="flex-1 min-w-[200px]"
-          />
+        <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
+          <p className="text-xs text-muted-foreground">En attente</p>
+          <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{pendingAmount.toLocaleString("fr-FR")} €</p>
+          <p className="text-[10px] text-muted-foreground">{invoices.filter((i) => i.paymentStatus === "pending").length} facture{invoices.filter((i) => i.paymentStatus === "pending").length > 1 ? "s" : ""}</p>
+        </div>
+        <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+          <p className="text-xs text-muted-foreground">Recouvrement</p>
+          <p className="text-lg font-bold text-green-600 dark:text-green-400">{recoveryRate}%</p>
+          <p className="text-[10px] text-muted-foreground">{paidCount} payée{paidCount > 1 ? "s" : ""}</p>
         </div>
       </div>
 
-      <div
-        className={
-          viewMode === "grid"
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-            : "space-y-4"
-        }
-      >
-        {invoices.map(renderInvoiceCard)}
+      {/* Compact filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[150px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Rechercher..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[110px] h-8 text-xs">
+            <Filter className="w-3 h-3 mr-1" />
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous</SelectItem>
+            <SelectItem value="pending">En attente</SelectItem>
+            <SelectItem value="partial">Partiel</SelectItem>
+            <SelectItem value="paid">Payé</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={(v: "date" | "amount" | "dueDate") => setSortBy(v)}>
+          <SelectTrigger className="w-[110px] h-8 text-xs">
+            <ArrowUpDown className="w-3 h-3 mr-1" />
+            <SelectValue placeholder="Trier" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date">Date</SelectItem>
+            <SelectItem value="amount">Montant</SelectItem>
+            <SelectItem value="dueDate">Échéance</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* List */}
+      <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" : "space-y-2"}>
+        {invoices.map(renderCompactCard)}
       </div>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-950">
-                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
-              <DialogTitle>Confirmer la suppression</DialogTitle>
-            </div>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-500" />
+              Confirmer la suppression
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-800 dark:text-red-200">
-                Êtes-vous sûr de vouloir supprimer cette facture ?
-              </p>
-              <p className="text-xs text-red-700 dark:text-red-300 mt-2 font-semibold">
-                ⚠️ Cette action est irréversible.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-              className="flex-1"
-            >
+          <p className="text-sm text-muted-foreground">
+            Supprimer cette facture ? Cette action est irréversible.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Annuler
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              className="flex-1"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
+            <Button variant="destructive" onClick={handleDelete}>
               Supprimer
             </Button>
           </DialogFooter>

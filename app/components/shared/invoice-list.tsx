@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Mail, Check, X, Receipt, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Eye,
+  Pencil,
+  Check,
+  X,
+  Trash2,
+  MoreHorizontal,
+  Search,
+  Filter,
+  ArrowUpDown,
+} from "lucide-react";
 import { PDFDownloadButton } from "./pdf-download-button";
 import {
   DropdownMenu,
@@ -15,10 +25,16 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StatusBadge } from "../status-badge";
 import { QuoteEmailDialog } from "../quotes/email-dialog";
 import { BillingEmailDialog } from "../billing/email-dialog";
@@ -57,23 +73,68 @@ export function InvoiceList({
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"date" | "amount" | "client">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Stats
+  const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
+  const acceptedAmount = invoices
+    .filter((inv) => inv.status === "accepted")
+    .reduce((sum, inv) => sum + inv.totalAmount, 0);
+  const acceptedCount = invoices.filter((inv) => inv.status === "accepted").length;
+  const conversionRate = invoices.length > 0 ? ((acceptedCount / invoices.length) * 100).toFixed(0) : 0;
+
+  // Filter and sort invoices
+  const filteredInvoices = useMemo(() => {
+    let result = [...invoices];
+
+    // Search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(
+        (inv) =>
+          inv.number.toLowerCase().includes(searchLower) ||
+          inv.client.name.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      result = result.filter((inv) => inv.status === statusFilter);
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case "date":
+          comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+          break;
+        case "amount":
+          comparison = b.totalAmount - a.totalAmount;
+          break;
+        case "client":
+          comparison = a.client.name.localeCompare(b.client.name);
+          break;
+      }
+      return sortOrder === "asc" ? -comparison : comparison;
+    });
+
+    return result;
+  }, [invoices, search, statusFilter, sortBy, sortOrder]);
 
   const handleToggleSelection = (id: string) => {
-    setSelectedInvoices((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((i) => i !== id);
-      } else {
-        return [...prev, id];
-      }
-    });
+    setSelectedInvoices((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   };
 
   const handleSelectAll = () => {
-    if (selectedInvoices.length === invoices.length) {
-      setSelectedInvoices([]);
-    } else {
-      setSelectedInvoices(invoices.map((inv) => inv.id));
-    }
+    setSelectedInvoices(
+      selectedInvoices.length === filteredInvoices.length ? [] : filteredInvoices.map((inv) => inv.id)
+    );
   };
 
   const handleDelete = () => {
@@ -85,143 +146,107 @@ export function InvoiceList({
     }
   };
 
-  const renderInvoiceCard = (invoice: Invoice) => (
-    <Card
+  const renderCompactCard = (invoice: Invoice) => (
+    <div
       key={invoice.id}
-      className={`p-4 hover:shadow-lg transition-shadow cursor-pointer relative
-        ${
-          viewMode === "split" && selectedInvoice?.id === invoice.id
-            ? "border-blue-500 border-2"
-            : ""
-        }
-        ${
-          isSelectionMode && selectedInvoices.includes(invoice.id)
-            ? "border-blue-500 border-2"
-            : ""
-        }`}
+      className={`flex items-center gap-3 p-3 bg-white dark:bg-slate-900 border rounded-lg hover:shadow-sm transition-all cursor-pointer
+        ${viewMode === "split" && selectedInvoice?.id === invoice.id ? "border-blue-500 ring-1 ring-blue-500" : "border-slate-200 dark:border-slate-700"}
+        ${isSelectionMode && selectedInvoices.includes(invoice.id) ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20" : ""}`}
       onClick={() => {
-        if (isSelectionMode) {
-          handleToggleSelection(invoice.id);
-        } else if (viewMode === "split") {
-          onSelect(invoice);
-        }
+        if (isSelectionMode) handleToggleSelection(invoice.id);
+        else if (viewMode === "split") onSelect(invoice);
       }}
     >
       {isSelectionMode && (
-        <div className="absolute top-2 left-2 z-10">
-          <Checkbox
-            checked={selectedInvoices.includes(invoice.id)}
-            onCheckedChange={() => handleToggleSelection(invoice.id)}
-          />
-        </div>
+        <Checkbox
+          checked={selectedInvoices.includes(invoice.id)}
+          onCheckedChange={() => handleToggleSelection(invoice.id)}
+          className="shrink-0"
+        />
       )}
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-        <div>
-          <p className="font-semibold">{invoice.number}</p>
-          <p className="text-sm text-muted-foreground">{invoice.client.name}</p>
+
+      {/* Main info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-sm truncate">{invoice.number}</span>
           {invoice.fake && (
-            <span className="text-xs text-blue-500 font-medium">Demo</span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded">Demo</span>
           )}
         </div>
-        <div className="text-left sm:text-right w-full sm:w-auto">
-          <p className="font-bold">
-            {invoice.totalAmount.toLocaleString("fr-FR")}{" "}
-            {invoice.currency === "CHF" ? "CHF" : "€"}
-          </p>
-          {invoice.discount?.value > 0 && (
-            <p className="text-sm text-green-600">
-              Remise:{" "}
-              {invoice.discount.type === "percentage"
-                ? `${invoice.discount.value}%`
-                : `${invoice.discount.value.toLocaleString("fr-FR")}€`}
-            </p>
-          )}
-          <StatusBadge status={invoice.status} />
-        </div>
+        <p className="text-xs text-muted-foreground truncate">{invoice.client.name}</p>
       </div>
-      <div className="text-sm text-muted-foreground mb-4">
-        <p>Créé le: {new Date(invoice.createdAt).toLocaleDateString()}</p>
-        <p>
-          Valide jusqu'au: {new Date(invoice.validUntil).toLocaleDateString()}
+
+      {/* Amount */}
+      <div className="text-right shrink-0">
+        <p className="font-semibold text-sm">
+          {invoice.totalAmount.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
         </p>
+        {invoice.discount?.value > 0 && (
+          <p className="text-[10px] text-green-600">
+            -{invoice.discount.type === "percentage" ? `${invoice.discount.value}%` : `${invoice.discount.value}€`}
+          </p>
+        )}
       </div>
+
+      {/* Status */}
+      <div className="shrink-0">
+        <StatusBadge status={invoice.status} />
+      </div>
+
+      {/* Actions */}
       {!isSelectionMode && (
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex items-center gap-1 shrink-0">
           {viewMode === "grid" && (
             <Button
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
               onClick={(e) => {
                 e.stopPropagation();
                 onPreview(invoice);
               }}
-              className="w-full sm:w-auto"
             >
-              <Eye className="w-4 h-4 mr-2" />
-              Aperçu
+              <Eye className="w-4 h-4" />
             </Button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
                 onClick={(e) => e.stopPropagation()}
               >
-                Actions
+                <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem
-                onClick={() => onEdit(invoice)}
-                className="text-blue-600"
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                Modifier
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(invoice)}>
+                <Pencil className="w-4 h-4 mr-2" /> Modifier
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <PDFDownloadButton
                   document={invoice}
                   type={type}
                   fileName={`${type === "quote" ? "Devis" : "Facture"}_${invoice.number}.pdf`}
-                  className="w-full text-green-600"
+                  className="w-full"
                 />
               </DropdownMenuItem>
               {type === "quote" ? (
-                <QuoteEmailDialog
-                  invoice={invoice}
-                  onEmailSent={() => onStatusUpdate(invoice.id, "sent")}
-                />
+                <QuoteEmailDialog invoice={invoice} onEmailSent={() => onStatusUpdate(invoice.id, "sent")} />
               ) : (
-                <BillingEmailDialog
-                  invoice={invoice as unknown as BillingInvoice}
-                  onEmailSent={() => {}}
-                />
+                <BillingEmailDialog invoice={invoice as unknown as BillingInvoice} onEmailSent={() => {}} />
               )}
-              {type === "quote" &&
-                invoice.status === "accepted" &&
-                onGenerateInvoice && (
-                  <GenerateInvoiceDialog
-                    quote={invoice}
-                    onGenerate={onGenerateInvoice}
-                  />
-                )}
+              {type === "quote" && invoice.status === "accepted" && onGenerateInvoice && (
+                <GenerateInvoiceDialog quote={invoice} onGenerate={onGenerateInvoice} />
+              )}
               {type === "quote" && invoice.status !== "accepted" && (
-                <DropdownMenuItem
-                  onClick={() => onStatusUpdate(invoice.id, "accepted")}
-                  className="text-green-600"
-                >
-                  <Check className="w-4 h-4 mr-2" />
-                  Marquer comme accepté
+                <DropdownMenuItem onClick={() => onStatusUpdate(invoice.id, "accepted")} className="text-green-600">
+                  <Check className="w-4 h-4 mr-2" /> Accepté
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                onClick={() => onStatusUpdate(invoice.id, "rejected")}
-                className="text-red-600"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Marquer comme refusé
+              <DropdownMenuItem onClick={() => onStatusUpdate(invoice.id, "rejected")} className="text-orange-600">
+                <X className="w-4 h-4 mr-2" /> Refusé
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
@@ -230,93 +255,121 @@ export function InvoiceList({
                 }}
                 className="text-red-600"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Supprimer
+                <Trash2 className="w-4 h-4 mr-2" /> Supprimer
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       )}
-    </Card>
+    </div>
   );
 
   return (
     <div className="space-y-4">
-      {invoices.length > 0 && (
-        <div className="flex justify-between items-center">
-          <Button
-            variant="outline"
-            onClick={() => setIsSelectionMode(!isSelectionMode)}
-          >
-            {isSelectionMode
-              ? "Annuler la sélection"
-              : "Sélectionner des devis"}
-          </Button>
-          {isSelectionMode && (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleSelectAll}>
-                {selectedInvoices.length === invoices.length
-                  ? "Tout désélectionner"
-                  : "Tout sélectionner"}
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                disabled={selectedInvoices.length === 0}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Supprimer ({selectedInvoices.length})
-              </Button>
-            </div>
-          )}
+      {/* Compact stats row */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+          <p className="text-xs text-muted-foreground">Total</p>
+          <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{totalAmount.toLocaleString("fr-FR")} €</p>
+          <p className="text-[10px] text-muted-foreground">{invoices.length} devis</p>
         </div>
-      )}
-
-      <div
-        className={
-          viewMode === "grid"
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-            : "space-y-4"
-        }
-      >
-        {invoices.map(renderInvoiceCard)}
+        <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+          <p className="text-xs text-muted-foreground">Acceptés</p>
+          <p className="text-lg font-bold text-green-600 dark:text-green-400">{acceptedAmount.toLocaleString("fr-FR")} €</p>
+          <p className="text-[10px] text-muted-foreground">{acceptedCount} devis</p>
+        </div>
+        <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+          <p className="text-xs text-muted-foreground">Conversion</p>
+          <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{conversionRate}%</p>
+          <p className="text-[10px] text-muted-foreground">taux de succès</p>
+        </div>
       </div>
 
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-950">
-                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
-              <DialogTitle>Confirmer la suppression</DialogTitle>
-            </div>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-800 dark:text-red-200">
-                Êtes-vous sûr de vouloir supprimer {selectedInvoices.length} devis
-                {selectedInvoices.length > 1 ? "s" : ""} ?
-              </p>
-              <p className="text-xs text-red-700 dark:text-red-300 mt-2 font-semibold">
-                ⚠️ Cette action est irréversible.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-              className="flex-1"
-            >
-              Annuler
+      {/* Compact filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[150px]">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Input
+            placeholder="Rechercher..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-8 text-sm"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[110px] h-8 text-xs">
+            <Filter className="w-3 h-3 mr-1" />
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous</SelectItem>
+            <SelectItem value="draft">Brouillon</SelectItem>
+            <SelectItem value="sent">Envoyé</SelectItem>
+            <SelectItem value="accepted">Accepté</SelectItem>
+            <SelectItem value="rejected">Refusé</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={(v: "date" | "amount" | "client") => setSortBy(v)}>
+          <SelectTrigger className="w-[110px] h-8 text-xs">
+            <ArrowUpDown className="w-3 h-3 mr-1" />
+            <SelectValue placeholder="Trier" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date">Date</SelectItem>
+            <SelectItem value="amount">Montant</SelectItem>
+            <SelectItem value="client">Client</SelectItem>
+          </SelectContent>
+        </Select>
+        {invoices.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSelectionMode(!isSelectionMode)}
+            className="text-xs h-8"
+          >
+            {isSelectionMode ? "Annuler" : "Sélectionner"}
+          </Button>
+        )}
+        {isSelectionMode && (
+          <>
+            <Button variant="outline" size="sm" onClick={handleSelectAll} className="text-xs h-8">
+              {selectedInvoices.length === filteredInvoices.length ? "Désélect." : "Tout"}
             </Button>
             <Button
               variant="destructive"
-              onClick={handleDelete}
-              className="flex-1"
+              size="sm"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              disabled={selectedInvoices.length === 0}
+              className="text-xs h-8"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-3 h-3 mr-1" />
+              ({selectedInvoices.length})
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* List */}
+      <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" : "space-y-2"}>
+        {filteredInvoices.map(renderCompactCard)}
+      </div>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-500" />
+              Confirmer la suppression
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer {selectedInvoices.length} devis{selectedInvoices.length > 1 ? "s" : ""} ? Cette action est irréversible.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
               Supprimer
             </Button>
           </DialogFooter>

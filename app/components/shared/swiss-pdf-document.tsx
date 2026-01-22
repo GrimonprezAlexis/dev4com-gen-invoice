@@ -34,36 +34,50 @@ const styles = StyleSheet.create({
     padding: "40 50",
     paddingBottom: 20,
   },
-  // Header with logo
-  header: {
+  // Header container
+  headerContainer: {
+    marginBottom: 25,
+  },
+  // Top row: Logo left, Client right
+  headerTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 40,
-  },
-  headerLeft: {
-    flexDirection: "row",
     alignItems: "flex-start",
   },
+  // Left side: Logo + Company
+  companySection: {
+    width: "50%",
+  },
   logo: {
-    marginRight: 10,
+    marginBottom: 10,
   },
   companyName: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "bold",
     color: COLORS.primary,
-  },
-  companyInfo: {
-    marginTop: 15,
+    marginBottom: 4,
+    fontFamily: "Helvetica-Bold",
   },
   companyText: {
     fontSize: 9,
     color: COLORS.primary,
     lineHeight: 1.5,
   },
-  // Client address (right side)
-  clientAddress: {
-    textAlign: "right",
-    marginTop: 20,
+  // Right side: Client block
+  clientSection: {
+    width: "45%",
+    alignItems: "flex-end",
+  },
+  clientBlock: {
+    width: "100%",
+    maxWidth: 180,
+  },
+  clientName: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: COLORS.primary,
+    marginBottom: 2,
+    fontFamily: "Helvetica-Bold",
   },
   clientText: {
     fontSize: 9,
@@ -74,9 +88,12 @@ const styles = StyleSheet.create({
   invoiceTitle: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-end",
     marginBottom: 20,
-    marginTop: 30,
+    marginTop: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.accent,
   },
   invoiceTitleText: {
     fontSize: 14,
@@ -85,7 +102,8 @@ const styles = StyleSheet.create({
   },
   invoiceDate: {
     fontSize: 9,
-    color: COLORS.primary,
+    color: COLORS.secondary,
+    textAlign: "right",
   },
   // Table
   table: {
@@ -324,10 +342,10 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
         {/* Main Content */}
         <View style={styles.mainContent}>
           {/* Header */}
-          <View style={styles.header}>
-            <View>
-              {/* Logo + Company name */}
-              <View style={styles.headerLeft}>
+          <View style={styles.headerContainer}>
+            <View style={styles.headerTopRow}>
+              {/* Left: Logo + Company */}
+              <View style={styles.companySection}>
                 {doc.company.logo && (
                   <Image
                     src={doc.company.logo}
@@ -335,27 +353,28 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
                   />
                 )}
                 <Text style={styles.companyName}>{doc.company.name}</Text>
-              </View>
-              {/* Company address */}
-              <View style={styles.companyInfo}>
                 <Text style={styles.companyText}>{doc.company.address}</Text>
-                <Text style={styles.companyText}>
-                  {doc.company.postalCode} {doc.company.city}
-                </Text>
+                {(doc.company.postalCode || doc.company.city) && (
+                  <Text style={styles.companyText}>
+                    {doc.company.postalCode} {doc.company.city}
+                  </Text>
+                )}
               </View>
-            </View>
 
-            {/* Client address (right) */}
-            <View style={styles.clientAddress}>
-              <Text style={styles.clientText}>{doc.client.name}</Text>
-              {doc.client.address && (
-                <Text style={styles.clientText}>{doc.client.address}</Text>
-              )}
-              {(doc.client.postalCode || doc.client.city) && (
-                <Text style={styles.clientText}>
-                  {doc.client.postalCode} {doc.client.city}
-                </Text>
-              )}
+              {/* Right: Client */}
+              <View style={styles.clientSection}>
+                <View style={styles.clientBlock}>
+                  <Text style={styles.clientName}>{doc.client.name}</Text>
+                  {doc.client.address && (
+                    <Text style={styles.clientText}>{doc.client.address}</Text>
+                  )}
+                  {(doc.client.postalCode || doc.client.city) && (
+                    <Text style={styles.clientText}>
+                      {doc.client.postalCode} {doc.client.city}
+                    </Text>
+                  )}
+                </View>
+              </View>
             </View>
           </View>
 
