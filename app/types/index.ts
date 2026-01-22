@@ -1,9 +1,15 @@
+export type BillingCountry = 'FR' | 'CH';
+
 export interface Company {
   name: string;
   address: string;
   siren: string;
   logo?: string;
   logoSize?: "small" | "medium" | "large";
+  // Swiss billing fields
+  country?: BillingCountry;
+  city?: string;
+  postalCode?: string;
 }
 
 export interface PaymentAccount {
@@ -12,6 +18,12 @@ export interface PaymentAccount {
   iban: string;
   bic: string;
   accountHolder: string;
+  // Country of the account
+  country?: BillingCountry;
+  // Swiss-specific fields for QR-Bill (required for CH accounts)
+  address?: string;
+  city?: string;
+  zip?: string;
 }
 
 export interface Service {
@@ -49,6 +61,7 @@ export interface Invoice {
   createdAt: Date;
   currency?: string;
   showTax?: boolean;
+  billingCountry?: BillingCountry;
   isTemplate?: boolean;
   templateName?: string;
   templateDescription?: string;
@@ -82,4 +95,10 @@ export interface BillingInvoice {
   createdAt: Date;
   quoteNumber: string;
   showTax?: boolean;
+  billingCountry?: BillingCountry;
+  // Deposit deduction tracking
+  depositDeducted?: boolean;
+  depositPercent?: number;
+  depositAmount?: number;
+  originalTotal?: number;
 }

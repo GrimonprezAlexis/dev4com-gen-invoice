@@ -270,12 +270,12 @@ function HomeContent() {
                 Nouveau Devis
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-[92vw] sm:w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogTitle>
-                {editingInvoice
-                  ? "Modifier le devis"
-                  : "Créer un nouveau devis"}
-              </DialogTitle>
+            <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0">
+              <div className="px-4 py-3 border-b shrink-0">
+                <DialogTitle className="text-base">
+                  {editingInvoice ? "Modifier le devis" : "Nouveau devis"}
+                </DialogTitle>
+              </div>
               <QuoteForm
                 key={editingInvoice?.id || "new"}
                 onSave={handleSaveInvoice}
@@ -323,12 +323,12 @@ function HomeContent() {
                   Nouveau Devis
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-[92vw] sm:w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogTitle>
-                  {editingInvoice
-                    ? "Modifier le devis"
-                    : "Créer un nouveau devis"}
-                </DialogTitle>
+              <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0">
+                <div className="px-4 py-3 border-b shrink-0">
+                  <DialogTitle className="text-base">
+                    {editingInvoice ? "Modifier le devis" : "Nouveau devis"}
+                  </DialogTitle>
+                </div>
                 <QuoteForm
                   key={editingInvoice?.id || "new"}
                   onSave={handleSaveInvoice}

@@ -12,10 +12,8 @@ import {
   Calendar,
   Check,
   Trash2,
-  Download,
 } from "lucide-react";
-import { PDFDownloadLink } from "@react-pdf/renderer";
-import { PDFDocument } from "./document-preview";
+import { PDFDownloadButton } from "./pdf-download-button";
 import {
   Select,
   SelectContent,
@@ -224,21 +222,11 @@ export function BillingInvoiceList({
                 onUpdate={onUpdate}
               />
               <DropdownMenuItem asChild>
-                <PDFDownloadLink
-                  document={
-                    <PDFDocument
-                      document={invoice}
-                      type="billing"
-                    />
-                  }
+                <PDFDownloadButton
+                  document={invoice}
+                  type="billing"
                   fileName={`Facture_${invoice.number}.pdf`}
-                  className="flex items-center w-full text-green-600"
-                  children={(({ loading }: { loading: any }) => (
-                    <>
-                      <Download className="w-4 h-4 mr-2" />
-                      {loading ? "Préparation..." : "Télécharger la facture"}
-                    </>
-                  )) as any}
+                  className="w-full text-green-600"
                 />
               </DropdownMenuItem>
               <BillingEmailDialog

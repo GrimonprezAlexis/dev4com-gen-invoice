@@ -122,6 +122,7 @@ export const saveInvoice = async (invoice: Invoice, userId: string) => {
       userId,
       currency: invoice.currency || "EUR",
       showTax: typeof invoice.showTax === "boolean" ? invoice.showTax : false,
+      billingCountry: invoice.billingCountry || "FR",
       createdAt: new Date(),
       date: new Date(invoice.date),
       validUntil: new Date(invoice.validUntil),
@@ -139,6 +140,7 @@ export const updateInvoice = async (id: string, invoice: Partial<Invoice>) => {
       ...invoice,
       ...(invoice.currency && { currency: invoice.currency }),
       ...(typeof invoice.showTax === "boolean" && { showTax: invoice.showTax }),
+      ...(invoice.billingCountry && { billingCountry: invoice.billingCountry }),
       ...(invoice.date && { date: new Date(invoice.date) }),
       ...(invoice.validUntil && { validUntil: new Date(invoice.validUntil) }),
     });
@@ -215,6 +217,7 @@ export const saveBillingInvoice = async (invoice: BillingInvoice, userId: string
       ...invoice,
       userId,
       currency: invoice.currency || "EUR",
+      billingCountry: invoice.billingCountry || "FR",
       createdAt: new Date(),
       date: new Date(invoice.date),
       dueDate: new Date(invoice.dueDate),
@@ -242,6 +245,7 @@ export const updateBillingInvoice = async (
     await updateDoc(docRef, {
       ...invoice,
       ...(invoice.currency && { currency: invoice.currency }),
+      ...(invoice.billingCountry && { billingCountry: invoice.billingCountry }),
       ...(invoice.date && { date: new Date(invoice.date) }),
       ...(invoice.dueDate && { dueDate: new Date(invoice.dueDate) }),
     });

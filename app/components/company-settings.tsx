@@ -5,11 +5,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Company, PaymentAccount } from "../types";
+import { Company, PaymentAccount, BillingCountry } from "../types";
 import { toast } from "sonner";
 import { Upload, X, Plus, Trash2, CreditCard } from "lucide-react";
 import { saveCompany, getCompany, savePaymentAccount, getPaymentAccounts, deletePaymentAccount } from "@/lib/firebase";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { Database, Loader2 } from "lucide-react";
 
@@ -20,6 +21,9 @@ export function CompanySettings() {
     address: "",
     siren: "",
     logo: "",
+    country: "FR",
+    city: "",
+    postalCode: "",
   });
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [newAccount, setNewAccount] = useState<Omit<PaymentAccount, "id">>({
@@ -27,6 +31,10 @@ export function CompanySettings() {
     iban: "",
     bic: "",
     accountHolder: "",
+    country: "FR",
+    address: "",
+    city: "",
+    zip: "",
   });
   const [isAddingAccount, setIsAddingAccount] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,6 +111,20 @@ export function CompanySettings() {
       return;
     }
 
+    // Swiss account validation
+    if (newAccount.country === "CH") {
+      if (!newAccount.address || !newAccount.city || !newAccount.zip) {
+        toast.error("Pour un compte suisse, l'adresse, la ville et le code postal sont obligatoires");
+        return;
+      }
+      // Validate Swiss IBAN format
+      const cleanIban = newAccount.iban.replace(/\s/g, "").toUpperCase();
+      if (!cleanIban.startsWith("CH") && !cleanIban.startsWith("LI")) {
+        toast.error("L'IBAN d'un compte suisse doit commencer par CH ou LI");
+        return;
+      }
+    }
+
     try {
       const account: PaymentAccount = {
         ...newAccount,
@@ -110,7 +132,7 @@ export function CompanySettings() {
       };
       await savePaymentAccount(account, user.uid);
       setPaymentAccounts((prev) => [...prev, account]);
-      setNewAccount({ name: "", iban: "", bic: "", accountHolder: "" });
+      setNewAccount({ name: "", iban: "", bic: "", accountHolder: "", country: "FR", address: "", city: "", zip: "" });
       setIsAddingAccount(false);
       toast.success("Compte de paiement ajouté");
     } catch (error) {
@@ -185,21 +207,61 @@ export function CompanySettings() {
           />
         </div>
         <div>
+          <Label htmlFor="companyCountry">Pays de facturation</Label>
+          <Select
+            value={company.country || "FR"}
+            onValueChange={(value: BillingCountry) => setCompany({ ...company, country: value })}
+          >
+            <SelectTrigger id="companyCountry">
+              <SelectValue placeholder="Sélectionner un pays" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="FR">France</SelectItem>
+              <SelectItem value="CH">Suisse</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
           <Label htmlFor="companyAddress">Adresse</Label>
           <Input
             id="companyAddress"
             value={company.address}
             onChange={(e) => setCompany({ ...company, address: e.target.value })}
+            placeholder={company.country === "CH" ? "Rue et numéro" : "Adresse complète"}
           />
         </div>
-        <div>
-          <Label htmlFor="companySiren">SIREN</Label>
-          <Input
-            id="companySiren"
-            value={company.siren}
-            onChange={(e) => setCompany({ ...company, siren: e.target.value })}
-          />
-        </div>
+        {company.country === "CH" && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="companyPostalCode">Code postal (NPA)</Label>
+              <Input
+                id="companyPostalCode"
+                value={company.postalCode || ""}
+                onChange={(e) => setCompany({ ...company, postalCode: e.target.value })}
+                placeholder="1000"
+              />
+            </div>
+            <div>
+              <Label htmlFor="companyCity">Ville</Label>
+              <Input
+                id="companyCity"
+                value={company.city || ""}
+                onChange={(e) => setCompany({ ...company, city: e.target.value })}
+                placeholder="Lausanne"
+              />
+            </div>
+          </div>
+        )}
+        {company.country === "FR" && (
+          <div>
+            <Label htmlFor="companySiren">SIREN</Label>
+            <Input
+              id="companySiren"
+              value={company.siren}
+              onChange={(e) => setCompany({ ...company, siren: e.target.value })}
+            />
+          </div>
+        )}
         <div>
           <Label>Logo de l'entreprise</Label>
           <div className="mt-2 space-y-4">
@@ -299,7 +361,16 @@ export function CompanySettings() {
                   className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900 flex justify-between items-start"
                 >
                   <div className="space-y-1">
-                    <p className="font-medium">{account.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{account.name}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        account.country === "CH"
+                          ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                          : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                      }`}>
+                        {account.country === "CH" ? "🇨🇭 Suisse" : "🇫🇷 France"}
+                      </span>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       <span className="font-medium">IBAN :</span> {account.iban}
                     </p>
@@ -309,6 +380,11 @@ export function CompanySettings() {
                     <p className="text-sm text-muted-foreground">
                       <span className="font-medium">Titulaire :</span> {account.accountHolder}
                     </p>
+                    {account.country === "CH" && account.address && (
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Adresse :</span> {account.address}, {account.zip} {account.city}
+                      </p>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
@@ -332,6 +408,27 @@ export function CompanySettings() {
           {/* Add new account form */}
           {isAddingAccount && (
             <div className="p-4 border rounded-lg space-y-4">
+              {/* Country selection */}
+              <div>
+                <Label htmlFor="accountCountry">Pays du compte</Label>
+                <Select
+                  value={newAccount.country || "FR"}
+                  onValueChange={(value: BillingCountry) => setNewAccount({ ...newAccount, country: value })}
+                >
+                  <SelectTrigger id="accountCountry">
+                    <SelectValue placeholder="Sélectionner un pays" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FR">🇫🇷 France</SelectItem>
+                    <SelectItem value="CH">🇨🇭 Suisse</SelectItem>
+                  </SelectContent>
+                </Select>
+                {newAccount.country === "CH" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Les champs d'adresse sont obligatoires pour générer une QR-Facture suisse conforme.
+                  </p>
+                )}
+              </div>
               <div>
                 <Label htmlFor="accountName">Nom du compte</Label>
                 <Input
@@ -342,10 +439,19 @@ export function CompanySettings() {
                 />
               </div>
               <div>
+                <Label htmlFor="accountHolder">Nom du titulaire (Prénom Nom ou Raison sociale)</Label>
+                <Input
+                  id="accountHolder"
+                  placeholder={newAccount.country === "CH" ? "Ex: Jean Dupont" : "Ex: EI GRIMONPREZ Alexis"}
+                  value={newAccount.accountHolder}
+                  onChange={(e) => setNewAccount({ ...newAccount, accountHolder: e.target.value })}
+                />
+              </div>
+              <div>
                 <Label htmlFor="iban">IBAN</Label>
                 <Input
                   id="iban"
-                  placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"
+                  placeholder={newAccount.country === "CH" ? "CH58 0079 1123 0008 8901 2" : "FR76 XXXX XXXX XXXX XXXX XXXX XXX"}
                   value={newAccount.iban}
                   onChange={(e) => setNewAccount({ ...newAccount, iban: e.target.value })}
                 />
@@ -359,21 +465,55 @@ export function CompanySettings() {
                   onChange={(e) => setNewAccount({ ...newAccount, bic: e.target.value })}
                 />
               </div>
-              <div>
-                <Label htmlFor="accountHolder">Nom associé au compte</Label>
-                <Input
-                  id="accountHolder"
-                  placeholder="Ex: EI GRIMONPREZ Alexis"
-                  value={newAccount.accountHolder}
-                  onChange={(e) => setNewAccount({ ...newAccount, accountHolder: e.target.value })}
-                />
-              </div>
+
+              {/* Swiss-specific fields */}
+              {newAccount.country === "CH" && (
+                <>
+                  <div className="border-t pt-4 mt-4">
+                    <p className="text-sm font-medium mb-3 text-amber-600 dark:text-amber-400">
+                      Adresse du titulaire (requis pour QR-Facture)
+                    </p>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="accountAddress">Adresse (rue et numéro)</Label>
+                        <Input
+                          id="accountAddress"
+                          placeholder="Ex: Rue de la Gare 12"
+                          value={newAccount.address || ""}
+                          onChange={(e) => setNewAccount({ ...newAccount, address: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="accountZip">Code postal (NPA)</Label>
+                          <Input
+                            id="accountZip"
+                            placeholder="1000"
+                            value={newAccount.zip || ""}
+                            onChange={(e) => setNewAccount({ ...newAccount, zip: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="accountCity">Ville</Label>
+                          <Input
+                            id="accountCity"
+                            placeholder="Lausanne"
+                            value={newAccount.city || ""}
+                            onChange={(e) => setNewAccount({ ...newAccount, city: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div className="flex gap-2 justify-end">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setIsAddingAccount(false);
-                    setNewAccount({ name: "", iban: "", bic: "", accountHolder: "" });
+                    setNewAccount({ name: "", iban: "", bic: "", accountHolder: "", country: "FR", address: "", city: "", zip: "" });
                   }}
                 >
                   Annuler
