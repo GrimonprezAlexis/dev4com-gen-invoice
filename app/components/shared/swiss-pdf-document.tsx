@@ -31,99 +31,111 @@ const styles = StyleSheet.create({
   },
   // Main content area (above QR-Bill)
   mainContent: {
-    padding: "40 50",
-    paddingBottom: 20,
+    padding: "30 40",
+    paddingBottom: 10, // Leave space for QR-Bill
   },
-  // Header container
+  // Header container - compact
   headerContainer: {
-    marginBottom: 25,
-  },
-  // Top row: Logo left, Client right
-  headerTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  // Left side: Logo + Company
-  companySection: {
-    width: "50%",
-  },
-  logo: {
     marginBottom: 10,
   },
+  // Top row: Logo + Company info on same line
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 0,
+  },
+  // Logo container
+  logoContainer: {
+    marginRight: 8,
+  },
+  logo: {
+    // dimensions set dynamically
+  },
+  // Company info next to logo
+  companyInfo: {
+    flex: 1,
+    justifyContent: "center",
+  },
   companyName: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "bold",
     color: COLORS.primary,
-    marginBottom: 4,
+    marginTop: 15,
+    marginBottom: 0,
     fontFamily: "Helvetica-Bold",
   },
   companyText: {
-    fontSize: 9,
-    color: COLORS.primary,
-    lineHeight: 1.5,
+    fontSize: 8,
+    color: COLORS.secondary,
+    lineHeight: 1.4,
   },
-  // Right side: Client block
+  // Client section - below company
   clientSection: {
-    width: "45%",
-    alignItems: "flex-end",
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 0.5,
+    borderTopColor: COLORS.border,
   },
-  clientBlock: {
-    width: "100%",
-    maxWidth: 180,
+  clientLabel: {
+    fontSize: 7,
+    color: COLORS.secondary,
+    marginBottom: 3,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   clientName: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "bold",
     color: COLORS.primary,
     marginBottom: 2,
     fontFamily: "Helvetica-Bold",
   },
   clientText: {
-    fontSize: 9,
+    fontSize: 8,
     color: COLORS.primary,
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
-  // Invoice title section
+  // Invoice title section - more compact
   invoiceTitle: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    marginBottom: 20,
-    marginTop: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
+    marginBottom: 12,
+    marginTop: 10,
+    paddingBottom: 6,
+    borderBottomWidth: 1.5,
     borderBottomColor: COLORS.accent,
   },
   invoiceTitleText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "bold",
     color: COLORS.primary,
+    fontFamily: "Helvetica-Bold",
   },
   invoiceDate: {
-    fontSize: 9,
+    fontSize: 8,
     color: COLORS.secondary,
     textAlign: "right",
   },
-  // Table
+  // Table - more compact
   table: {
-    marginBottom: 15,
+    marginBottom: 10,
   },
   tableHeader: {
     flexDirection: "row",
     backgroundColor: COLORS.accent,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
   tableHeaderText: {
     color: COLORS.white,
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: "bold",
   },
   tableRow: {
     flexDirection: "row",
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
     borderBottomWidth: 0.5,
     borderBottomColor: COLORS.border,
   },
@@ -133,130 +145,130 @@ const styles = StyleSheet.create({
   colDescription: { width: "50%" },
   colTotal: { width: "25%", textAlign: "right" },
   cellText: {
-    fontSize: 9,
+    fontSize: 8,
     color: COLORS.primary,
   },
-  // Summary section
+  // Summary section - compact
   summarySection: {
-    marginTop: 10,
+    marginTop: 8,
     marginLeft: "auto",
-    width: "50%",
+    width: "45%",
   },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
   },
   summaryLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: COLORS.primary,
     fontWeight: "bold",
   },
   summaryValue: {
-    fontSize: 9,
+    fontSize: 8,
     color: COLORS.accent,
     fontWeight: "bold",
   },
   summaryDivider: {
     borderTopWidth: 0.5,
     borderTopColor: COLORS.border,
-    marginVertical: 5,
+    marginVertical: 3,
   },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    marginTop: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginTop: 3,
   },
   totalLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: COLORS.primary,
     fontWeight: "bold",
   },
   totalValue: {
-    fontSize: 10,
+    fontSize: 9,
     color: COLORS.primary,
     fontWeight: "bold",
   },
-  // Notes section
+  // Notes section - compact
   notesSection: {
-    marginTop: 20,
-    paddingTop: 10,
+    marginTop: 10,
+    paddingTop: 6,
     borderTopWidth: 0.5,
     borderTopColor: COLORS.border,
   },
   notesTitle: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "bold",
-    marginBottom: 5,
+    marginBottom: 3,
   },
   notesText: {
-    fontSize: 8,
+    fontSize: 7,
     color: COLORS.secondary,
-    lineHeight: 1.4,
+    lineHeight: 1.3,
   },
-  // VAT note
+  // VAT note - compact
   vatNote: {
-    fontSize: 8,
+    fontSize: 7,
     color: COLORS.secondary,
-    marginTop: 15,
+    marginTop: 8,
     fontStyle: "italic",
   },
-  // Conditions (for quotes)
+  // Conditions (for quotes) - compact
   conditionsSection: {
-    marginTop: 20,
-    padding: 10,
+    marginTop: 10,
+    padding: 6,
     backgroundColor: COLORS.light,
   },
   conditionsTitle: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "bold",
-    marginBottom: 5,
+    marginBottom: 3,
   },
   conditionsText: {
-    fontSize: 8,
+    fontSize: 7,
     color: COLORS.primary,
-    lineHeight: 1.5,
+    lineHeight: 1.4,
   },
-  // Deposit info for quotes
+  // Deposit info for quotes - compact
   depositInfo: {
-    marginTop: 10,
-    padding: 10,
+    marginTop: 8,
+    padding: 6,
     backgroundColor: "#e8f5e9",
-    borderLeftWidth: 3,
+    borderLeftWidth: 2,
     borderLeftColor: "#4caf50",
   },
   depositTitle: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "bold",
     color: "#2e7d32",
-    marginBottom: 5,
+    marginBottom: 3,
   },
   depositText: {
-    fontSize: 8,
+    fontSize: 7,
     color: "#1b5e20",
-    lineHeight: 1.5,
+    lineHeight: 1.2,
   },
-  // Signature section
+  // Signature section - compact
   signatureSection: {
-    marginTop: 20,
-    padding: 10,
+    marginTop: 10,
+    padding: 6,
     backgroundColor: COLORS.light,
   },
   signatureTitle: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "bold",
-    marginBottom: 5,
-  },
-  signatureName: {
-    fontSize: 12,
-    fontStyle: "italic",
     marginBottom: 3,
   },
+  signatureName: {
+    fontSize: 10,
+    fontStyle: "italic",
+    marginBottom: 2,
+  },
   signatureDate: {
-    fontSize: 8,
+    fontSize: 7,
     color: COLORS.secondary,
   },
   // QR-Bill section (full width image at bottom)
@@ -343,38 +355,38 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
         <View style={styles.mainContent}>
           {/* Header */}
           <View style={styles.headerContainer}>
+            {/* Top row: Logo + Company info */}
             <View style={styles.headerTopRow}>
-              {/* Left: Logo + Company */}
-              <View style={styles.companySection}>
-                {doc.company.logo && (
+              {doc.company.logo && (
+                <View style={styles.logoContainer}>
                   <Image
                     src={doc.company.logo}
                     style={[styles.logo, getLogoDimensions(doc.company.logoSize)]}
                   />
-                )}
-                <Text style={styles.companyName}>{doc.company.name}</Text>
-                <Text style={styles.companyText}>{doc.company.address}</Text>
-                {(doc.company.postalCode || doc.company.city) && (
-                  <Text style={styles.companyText}>
-                    {doc.company.postalCode} {doc.company.city}
-                  </Text>
-                )}
-              </View>
-
-              {/* Right: Client */}
-              <View style={styles.clientSection}>
-                <View style={styles.clientBlock}>
-                  <Text style={styles.clientName}>{doc.client.name}</Text>
-                  {doc.client.address && (
-                    <Text style={styles.clientText}>{doc.client.address}</Text>
-                  )}
-                  {(doc.client.postalCode || doc.client.city) && (
-                    <Text style={styles.clientText}>
-                      {doc.client.postalCode} {doc.client.city}
-                    </Text>
-                  )}
                 </View>
+              )}
+              <View style={styles.companyInfo}>
+                <Text style={styles.companyName}>{doc.company.name}</Text>
+                <Text style={styles.companyText}>
+                  {doc.company.address}
+                  {(doc.company.postalCode || doc.company.city) &&
+                    `, ${doc.company.postalCode || ""} ${doc.company.city || ""}`.trim()}
+                </Text>
               </View>
+            </View>
+
+            {/* Client section below */}
+            <View style={styles.clientSection}>
+              <Text style={styles.clientLabel}>Destinataire</Text>
+              <Text style={styles.clientName}>{doc.client.name}</Text>
+              {doc.client.address && (
+                <Text style={styles.clientText}>{doc.client.address}</Text>
+              )}
+              {(doc.client.postalCode || doc.client.city) && (
+                <Text style={styles.clientText}>
+                  {doc.client.postalCode} {doc.client.city}
+                </Text>
+              )}
             </View>
           </View>
 
@@ -483,7 +495,7 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
           {/* Conditions (for quotes) */}
           {isQuote && (
             <View style={styles.conditionsSection}>
-              <Text style={styles.conditionsTitle}>Conditions</Text>
+              {/* <Text style={styles.conditionsTitle}>Conditions</Text> */}
               <Text style={styles.conditionsText}>
                 Délai de livraison : {quoteDoc.deliveryTime}
               </Text>
@@ -499,16 +511,16 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
           {/* Deposit info for quotes with QR-Bill */}
           {isQuote && depositPercent > 0 && showQRBill && (
             <View style={styles.depositInfo}>
-              <Text style={styles.depositTitle}>Acompte demandé</Text>
+              {/* <Text style={styles.depositTitle}>Acompte demandé</Text> */}
               <Text style={styles.depositText}>
                 Acompte : {depositPercent}% soit CHF {formatSwissNumber(depositAmount)}
               </Text>
               <Text style={styles.depositText}>
                 Solde à la livraison : CHF {formatSwissNumber(quoteDoc.remainingBalance)}
               </Text>
-              <Text style={styles.depositText}>
+              {/* <Text style={styles.depositText}>
                 Veuillez utiliser le bulletin de versement ci-dessous pour régler l'acompte.
-              </Text>
+              </Text> */}
             </View>
           )}
 

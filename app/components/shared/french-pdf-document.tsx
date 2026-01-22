@@ -540,7 +540,7 @@ export const FrenchPDFDocument = ({ document, type, qrCodeDataUrl }: FrenchPDFDo
 
         {isQuote ? (
           <View style={styles.conditions}>
-            <Text style={styles.conditionsTitle}>Conditions</Text>
+            {/* <Text style={styles.conditionsTitle}>Conditions</Text> */}
             <Text style={styles.conditionsText}>
               Delai de livraison: {(document as Invoice).deliveryTime}
             </Text>
