@@ -70,3 +70,30 @@ export const resetPassword = async (email: string) => {
   const authInstance = await getFirebaseAuth();
   return sendPasswordResetEmail(authInstance, email);
 };
+
+export const reauthenticate = async (password: string) => {
+  const { EmailAuthProvider, reauthenticateWithCredential } = await import("firebase/auth");
+  const authInstance = await getFirebaseAuth();
+  const user = authInstance.currentUser;
+  if (!user || !user.email) throw new Error("Utilisateur non connecté");
+  const credential = EmailAuthProvider.credential(user.email, password);
+  return reauthenticateWithCredential(user, credential);
+};
+
+export const changeEmail = async (newEmail: string, currentPassword: string) => {
+  const { verifyBeforeUpdateEmail } = await import("firebase/auth");
+  const authInstance = await getFirebaseAuth();
+  await reauthenticate(currentPassword);
+  const user = authInstance.currentUser;
+  if (!user) throw new Error("Utilisateur non connecté");
+  return verifyBeforeUpdateEmail(user, newEmail);
+};
+
+export const changePassword = async (currentPassword: string, newPassword: string) => {
+  const { updatePassword } = await import("firebase/auth");
+  const authInstance = await getFirebaseAuth();
+  await reauthenticate(currentPassword);
+  const user = authInstance.currentUser;
+  if (!user) throw new Error("Utilisateur non connecté");
+  return updatePassword(user, newPassword);
+};

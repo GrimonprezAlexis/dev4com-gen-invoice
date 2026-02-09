@@ -432,3 +432,80 @@ export const migrateDataToUser = async (userId: string) => {
     throw error;
   }
 };
+
+// ─── Export / Import ───
+
+export interface UserDataExport {
+  version: string;
+  exportedAt: string;
+  userId: string;
+  data: {
+    company: Company | null;
+    invoices: Invoice[];
+    billingInvoices: BillingInvoice[];
+    templates: Invoice[];
+    paymentAccounts: PaymentAccount[];
+  };
+}
+
+export const exportUserData = async (userId: string): Promise<UserDataExport> => {
+  const [company, invoices, billingInvoices, templates, paymentAccounts] = await Promise.all([
+    getCompany(userId),
+    getInvoices(userId),
+    getBillingInvoices(userId),
+    getTemplates(userId),
+    getPaymentAccounts(userId),
+  ]);
+
+  return {
+    version: "1.0",
+    exportedAt: new Date().toISOString(),
+    userId,
+    data: {
+      company,
+      invoices,
+      billingInvoices,
+      templates,
+      paymentAccounts,
+    },
+  };
+};
+
+export const importUserData = async (
+  userId: string,
+  exportData: UserDataExport
+): Promise<{ imported: { company: boolean; invoices: number; billingInvoices: number; templates: number; paymentAccounts: number } }> => {
+  const result = { company: false, invoices: 0, billingInvoices: 0, templates: 0, paymentAccounts: 0 };
+
+  // Import company
+  if (exportData.data.company) {
+    await saveCompany(exportData.data.company, userId);
+    result.company = true;
+  }
+
+  // Import invoices
+  for (const invoice of exportData.data.invoices) {
+    await saveInvoice(invoice, userId);
+    result.invoices++;
+  }
+
+  // Import billing invoices
+  for (const billing of exportData.data.billingInvoices) {
+    await saveBillingInvoice(billing, userId);
+    result.billingInvoices++;
+  }
+
+  // Import templates
+  for (const template of exportData.data.templates) {
+    await saveTemplate(template, userId);
+    result.templates++;
+  }
+
+  // Import payment accounts
+  for (const account of exportData.data.paymentAccounts) {
+    await savePaymentAccount(account, userId);
+    result.paymentAccounts++;
+  }
+
+  return { imported: result };
+};
