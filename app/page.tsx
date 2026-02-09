@@ -282,7 +282,7 @@ function HomeContent() {
                 Nouveau Devis
               </Button>
             </DialogTrigger>
-            <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0">
+            <DialogContent resizable className="w-[95vw] max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[85vh] flex flex-col p-0 gap-0">
               <div className="px-4 py-3 border-b shrink-0">
                 <DialogTitle className="text-base">
                   {editingInvoice ? "Modifier le devis" : "Nouveau devis"}
@@ -335,7 +335,7 @@ function HomeContent() {
                   Nouveau Devis
                 </Button>
               </DialogTrigger>
-              <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0">
+              <DialogContent resizable className="w-[95vw] max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[85vh] flex flex-col p-0 gap-0">
                 <div className="px-4 py-3 border-b shrink-0">
                   <DialogTitle className="text-base">
                     {editingInvoice ? "Modifier le devis" : "Nouveau devis"}

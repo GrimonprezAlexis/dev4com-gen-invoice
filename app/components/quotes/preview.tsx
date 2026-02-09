@@ -16,17 +16,21 @@ export function QuotePreview({ invoice }: QuotePreviewProps) {
 
   useEffect(() => {
     const generateQR = async () => {
-      // Only generate QR for Swiss quotes with payment account and deposit
-      if (isSwiss && invoice.paymentAccount?.country === "CH" && hasDeposit) {
+      if (isSwiss && invoice.paymentAccount?.country === "CH") {
         try {
-          // Generate QR for deposit amount
-          const depositAmount = invoice.totalAmount * (invoice.deposit / 100);
+          // Use deposit amount if deposit > 0, otherwise total amount
+          const amount = hasDeposit
+            ? invoice.totalAmount * (invoice.deposit / 100)
+            : invoice.totalAmount;
+          const reference = hasDeposit
+            ? `${invoice.number}-ACOMPTE`
+            : invoice.number;
           const qrCode = await generateSwissQRBillPng(
             invoice.paymentAccount,
             invoice.company,
             invoice.client,
-            depositAmount,
-            `${invoice.number}-ACOMPTE`,
+            amount,
+            reference,
             (invoice.currency as "CHF" | "EUR") || "CHF"
           );
           setQrCodeDataUrl(qrCode);

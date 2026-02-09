@@ -41,9 +41,11 @@ export function PDFDownloadButton({
                 ? (document as BillingInvoice).totalWithTax
                 : document.totalAmount;
             } else {
-              // For quotes, generate QR for deposit amount
+              // For quotes: deposit amount if deposit > 0, otherwise total
               const quote = document as Invoice;
-              amount = quote.totalAmount * (quote.deposit / 100);
+              amount = quote.deposit > 0
+                ? quote.totalAmount * (quote.deposit / 100)
+                : quote.totalAmount;
             }
             qrCode = await generateSwissQRBillPng(
               document.paymentAccount,

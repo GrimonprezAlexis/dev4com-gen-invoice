@@ -87,7 +87,7 @@ export function AIRewriteDialog({
       setStep("result");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
-      setError(`${errorMessage} - Vérifiez votre clé API Anthropic dans .env.local`);
+      setError(`${errorMessage} - Vérifiez votre clé API Groq dans .env.local`);
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +110,7 @@ export function AIRewriteDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] sm:w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent resizable className="w-[95vw] sm:w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wand2 className="h-5 w-5" />

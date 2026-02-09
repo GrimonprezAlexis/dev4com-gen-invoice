@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Plus, Trash2, Wand2, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
+import { Plus, Trash2, Wand2, ChevronDown, ChevronUp, CreditCard, GripVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,9 @@ export function InvoiceForm({
   // Collapsible sections
   const [showClient, setShowClient] = useState(true);
   const [showConditions, setShowConditions] = useState(false);
+  const [collapsedServices, setCollapsedServices] = useState<Set<string>>(new Set());
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const totalTTC = totalAmount * (1 + taxRate / 100);
   const currencySymbol = currency === "EUR" ? "€" : "CHF";
@@ -196,6 +199,53 @@ export function InvoiceForm({
     }));
   };
 
+  const toggleServiceCollapse = (id: string) => {
+    setCollapsedServices((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const collapseAll = () => {
+    setCollapsedServices(new Set(services.map((s) => s.id)));
+  };
+
+  const expandAll = () => {
+    setCollapsedServices(new Set());
+  };
+
+  const handleDragStart = (id: string) => {
+    setDraggedId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (draggedId && draggedId !== id) {
+      setDragOverId(id);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) return;
+    const fromIndex = services.findIndex((s) => s.id === draggedId);
+    const toIndex = services.findIndex((s) => s.id === targetId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const reordered = [...services];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    setServices(reordered);
+    setDraggedId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full max-h-[calc(85vh-60px)]">
       {/* Scrollable content */}
@@ -271,8 +321,23 @@ export function InvoiceForm({
         {/* Services section */}
         <div className="border rounded-lg">
           <div className="flex items-center justify-between p-2 border-b">
-            <span className="text-sm font-medium">Services</span>
+            <span className="text-sm font-medium">Services ({services.length})</span>
             <div className="flex gap-1">
+              {services.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={collapsedServices.size === services.length ? expandAll : collapseAll}
+                  className="h-7 text-xs gap-1 text-muted-foreground"
+                >
+                  {collapsedServices.size === services.length ? (
+                    <><ChevronDown className="w-3 h-3" /> Tout ouvrir</>
+                  ) : (
+                    <><ChevronUp className="w-3 h-3" /> Tout replier</>
+                  )}
+                </Button>
+              )}
               <Button type="button" variant="outline" size="sm" onClick={() => setIsAIDialogOpen(true)} className="h-7 text-xs gap-1">
                 <Wand2 className="w-3 h-3" /> IA
               </Button>
@@ -281,47 +346,100 @@ export function InvoiceForm({
               </Button>
             </div>
           </div>
-          <div className="p-2 space-y-2 max-h-[200px] overflow-y-auto">
-            {services.map((service, idx) => (
-              <div key={service.id} className="grid grid-cols-12 gap-1 items-start p-2 bg-slate-50 dark:bg-slate-900/50 rounded border">
-                <div className="col-span-2 sm:col-span-1">
-                  <Label className="text-[10px] text-muted-foreground sm:hidden">Qté</Label>
-                  <Input
-                    type="number"
-                    value={service.quantity}
-                    onChange={(e) => updateService(service.id, "quantity", parseInt(e.target.value) || 0)}
-                    className="h-7 text-xs"
-                  />
+          <div className="p-2 space-y-1.5 max-h-[300px] overflow-y-auto">
+            {services.map((service, idx) => {
+              const isCollapsed = collapsedServices.has(service.id);
+              const isDragging = draggedId === service.id;
+              const isDragOver = dragOverId === service.id;
+              return (
+                <div
+                  key={service.id}
+                  draggable
+                  onDragStart={() => handleDragStart(service.id)}
+                  onDragOver={(e) => handleDragOver(e, service.id)}
+                  onDrop={(e) => handleDrop(e, service.id)}
+                  onDragEnd={handleDragEnd}
+                  className={`rounded border transition-all ${
+                    isDragging
+                      ? "opacity-40 scale-[0.98]"
+                      : isDragOver
+                      ? "border-blue-400 bg-blue-50/50 dark:bg-blue-950/20"
+                      : "bg-slate-50 dark:bg-slate-900/50"
+                  }`}
+                >
+                  {/* Collapsed summary row */}
+                  <div
+                    className="flex items-center gap-1.5 px-1.5 py-1 cursor-pointer select-none group"
+                    onClick={() => toggleServiceCollapse(service.id)}
+                  >
+                    <div
+                      className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <GripVertical className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground/60 font-mono w-4 shrink-0">{idx + 1}</span>
+                    <span className="text-xs truncate flex-1 text-muted-foreground">
+                      {service.description || "Service sans description"}
+                    </span>
+                    <span className="text-xs font-medium shrink-0 tabular-nums">
+                      {service.amount.toLocaleString("fr-FR")} {currencySymbol}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => { e.stopPropagation(); removeService(service.id); }}
+                      className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 shrink-0"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                    {isCollapsed ? (
+                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+                    ) : (
+                      <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+                    )}
+                  </div>
+
+                  {/* Expanded edit form */}
+                  {!isCollapsed && (
+                    <div className="grid grid-cols-12 gap-1 items-start px-2 pb-2 pt-0.5 border-t border-dashed border-slate-200 dark:border-slate-700">
+                      <div className="col-span-2 sm:col-span-1">
+                        <Label className="text-[10px] text-muted-foreground">Qté</Label>
+                        <Input
+                          type="number"
+                          value={service.quantity}
+                          onChange={(e) => updateService(service.id, "quantity", parseInt(e.target.value) || 0)}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      <div className="col-span-10 sm:col-span-6">
+                        <Label className="text-[10px] text-muted-foreground">Description</Label>
+                        <Textarea
+                          value={service.description}
+                          onChange={(e) => updateService(service.id, "description", e.target.value)}
+                          placeholder="Description du service..."
+                          className="text-xs min-h-[50px] resize-none"
+                        />
+                      </div>
+                      <div className="col-span-6 sm:col-span-2">
+                        <Label className="text-[10px] text-muted-foreground">P.U.</Label>
+                        <Input
+                          type="number"
+                          value={service.unitPrice}
+                          onChange={(e) => updateService(service.id, "unitPrice", parseInt(e.target.value) || 0)}
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      <div className="col-span-6 sm:col-span-3">
+                        <Label className="text-[10px] text-muted-foreground">Total</Label>
+                        <Input value={`${service.amount.toLocaleString("fr-FR")} ${currencySymbol}`} disabled className="h-7 text-xs font-medium" />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="col-span-10 sm:col-span-6">
-                  <Label className="text-[10px] text-muted-foreground sm:hidden">Description</Label>
-                  <Textarea
-                    value={service.description}
-                    onChange={(e) => updateService(service.id, "description", e.target.value)}
-                    placeholder="Description du service..."
-                    className="text-xs min-h-[50px] resize-none"
-                  />
-                </div>
-                <div className="col-span-5 sm:col-span-2">
-                  <Label className="text-[10px] text-muted-foreground sm:hidden">P.U.</Label>
-                  <Input
-                    type="number"
-                    value={service.unitPrice}
-                    onChange={(e) => updateService(service.id, "unitPrice", parseInt(e.target.value) || 0)}
-                    className="h-7 text-xs"
-                  />
-                </div>
-                <div className="col-span-5 sm:col-span-2">
-                  <Label className="text-[10px] text-muted-foreground sm:hidden">Total</Label>
-                  <Input value={service.amount} disabled className="h-7 text-xs font-medium" />
-                </div>
-                <div className="col-span-2 sm:col-span-1 flex justify-end">
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeService(service.id)} className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50">
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -419,6 +537,11 @@ export function InvoiceForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  {selectedPaymentAccount && billingCountry === "CH" && selectedPaymentAccount.country === "CH" && (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      ✓ QR-Facture suisse incluse
+                    </p>
+                  )}
                 </div>
               )}
             </div>

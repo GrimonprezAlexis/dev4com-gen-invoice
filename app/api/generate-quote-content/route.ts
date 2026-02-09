@@ -14,19 +14,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey || apiKey === "votre-clé-api-anthropic-ici") {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
       return NextResponse.json(
         {
-          error: "Clé API Anthropic non configurée. Configurez ANTHROPIC_API_KEY dans .env"
+          error: "Clé API Groq non configurée. Configurez GROQ_API_KEY dans .env"
         },
         { status: 500 }
       );
     }
-
-    // Importer dynamiquement le SDK
-    const { default: Anthropic } = await import("@anthropic-ai/sdk");
-    const client = new Anthropic({ apiKey });
 
     const prompt = `Tu es un expert en rédaction commerciale et en génération de devis professionnels.
 
@@ -78,19 +74,41 @@ Retour JSON:
 
 Retourne UNIQUEMENT le JSON sans explication ou markdown.`;
 
-    const message = await client.messages.create({
-      model: "claude-opus-4-5-20251101",
-      max_tokens: 2048,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
         },
-      ],
-    });
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          max_tokens: 2048,
+          temperature: 0.7,
+        }),
+      }
+    );
 
-    const responseText =
-      message.content[0].type === "text" ? message.content[0].text : "";
+    if (!groqResponse.ok) {
+      const errorData = await groqResponse.json();
+      console.error("Erreur API Groq:", errorData);
+      return NextResponse.json(
+        {
+          error: `Erreur API Groq: ${errorData.error?.message || groqResponse.statusText}`,
+        },
+        { status: groqResponse.status }
+      );
+    }
+
+    const groqData = await groqResponse.json();
+    const responseText = groqData.choices?.[0]?.message?.content || "";
 
     // Parse le JSON retourné
     let parsedData;
