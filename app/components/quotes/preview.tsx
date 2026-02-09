@@ -27,7 +27,7 @@ export function QuotePreview({ invoice }: QuotePreviewProps) {
             invoice.client,
             depositAmount,
             `${invoice.number}-ACOMPTE`,
-            "CHF"
+            (invoice.currency as "CHF" | "EUR") || "CHF"
           );
           setQrCodeDataUrl(qrCode);
         } catch (error) {

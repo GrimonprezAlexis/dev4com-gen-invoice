@@ -420,121 +420,92 @@ export const FrenchPDFDocument = ({ document, type, qrCodeDataUrl }: FrenchPDFDo
                 </View>
               </>
             )
-          ) : (document as BillingInvoice).showTax ? (
-            <>
-              {/* Show deposit deduction if applicable */}
-              {(document as BillingInvoice).depositDeducted && (document as BillingInvoice).originalTotal && (
-                <>
-                  <View style={styles.totalRow}>
-                    <Text>Total du devis :</Text>
-                    <Text>
-                      {formatFrenchNumber((document as BillingInvoice).originalTotal || 0)}{" "}
-                      {currencySymbol}
-                    </Text>
-                  </View>
-                  <View style={[styles.totalRow, { color: "#4caf50" }]}>
-                    <Text style={{ color: "#4caf50" }}>
-                      Acompte versé ({(document as BillingInvoice).depositPercent}%) :
-                    </Text>
-                    <Text style={{ color: "#4caf50" }}>
-                      - {formatFrenchNumber((document as BillingInvoice).depositAmount || 0)}{" "}
-                      {currencySymbol}
-                    </Text>
-                  </View>
-                </>
-              )}
-              <View style={styles.totalRow}>
-                <Text>Montant HT :</Text>
-                <Text>
-                  {formatFrenchNumber((document as BillingInvoice).subtotal)}{" "}
-                  {currencySymbol}
-                </Text>
-              </View>
-              {(document as BillingInvoice).discount.value > 0 && (
-                <View style={styles.totalRow}>
-                  <Text>Remise :</Text>
-                  <Text>
-                    {(document as BillingInvoice).discount.type === "percentage"
-                      ? `${(document as BillingInvoice).discount.value}%`
-                      : `${formatFrenchNumber(
-                          (document as BillingInvoice).discount.value
-                        )} ${currencySymbol}`}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.totalRow}>
-                <Text>{(document as BillingInvoice).depositDeducted ? "Solde HT :" : "Total HT :"}</Text>
-                <Text>
-                  {formatFrenchNumber(document.totalAmount)} {currencySymbol}
-                </Text>
-              </View>
-              <View style={styles.totalRow}>
-                <Text>TVA ({(document as BillingInvoice).taxRate}%):</Text>
-                <Text>
-                  {formatFrenchNumber((document as BillingInvoice).taxAmount)}{" "}
-                  {currencySymbol}
-                </Text>
-              </View>
-              <View style={styles.totalRowBold}>
-                <Text>{(document as BillingInvoice).depositDeducted ? "Solde TTC:" : "Total TTC:"}</Text>
-                <Text>
-                  {formatFrenchNumber((document as BillingInvoice).totalWithTax)}{" "}
-                  {currencySymbol}
-                </Text>
-              </View>
-            </>
           ) : (
-            <>
-              {/* Show deposit deduction if applicable */}
-              {(document as BillingInvoice).depositDeducted && (document as BillingInvoice).originalTotal && (
+            (() => {
+              const billing = document as BillingInvoice;
+              const hasDeposit = billing.depositDeducted && billing.originalTotal;
+              const hasAdditional = billing.additionalServicesTotal && billing.additionalServicesTotal > 0;
+              const soldeHT = hasDeposit
+                ? (billing.originalTotal || 0) - (billing.depositAmount || 0)
+                : billing.totalAmount - (billing.additionalServicesTotal || 0);
+
+              return (
                 <>
-                  <View style={styles.totalRow}>
-                    <Text>Total du devis :</Text>
+                  {/* Total devis */}
+                  {hasDeposit && (
+                    <View style={styles.totalRow}>
+                      <Text>Total devis :</Text>
+                      <Text>
+                        {formatFrenchNumber(billing.originalTotal || 0)} {currencySymbol}
+                      </Text>
+                    </View>
+                  )}
+                  {/* Acompte versé */}
+                  {hasDeposit && (
+                    <View style={[styles.totalRow, { color: "#4caf50" }]}>
+                      <Text style={{ color: "#4caf50" }}>Acompte versé :</Text>
+                      <Text style={{ color: "#4caf50" }}>
+                        -{formatFrenchNumber(billing.depositAmount || 0)} {currencySymbol}
+                      </Text>
+                    </View>
+                  )}
+                  {/* Solde HT */}
+                  {hasDeposit && (
+                    <View style={styles.totalRow}>
+                      <Text>Solde HT :</Text>
+                      <Text>
+                        {formatFrenchNumber(soldeHT)} {currencySymbol}
+                      </Text>
+                    </View>
+                  )}
+                  {/* Services additionnels */}
+                  {hasAdditional && (
+                    <View style={[styles.totalRow, { color: "#d97706" }]}>
+                      <Text style={{ color: "#d97706" }}>Services additionnels :</Text>
+                      <Text style={{ color: "#d97706" }}>
+                        +{formatFrenchNumber(billing.additionalServicesTotal || 0)} {currencySymbol}
+                      </Text>
+                    </View>
+                  )}
+                  {/* Discount */}
+                  {billing.discount?.value > 0 && (
+                    <View style={styles.totalRow}>
+                      <Text>Remise :</Text>
+                      <Text>
+                        {billing.discount?.type === "percentage"
+                          ? `${billing.discount.value}%`
+                          : `${formatFrenchNumber(billing.discount.value)} ${currencySymbol}`}
+                      </Text>
+                    </View>
+                  )}
+                  {/* TVA if applicable */}
+                  {billing.showTax && billing.taxRate > 0 && (
+                    <>
+                      <View style={styles.totalRow}>
+                        <Text>TVA ({billing.taxRate}%) :</Text>
+                        <Text>
+                          {formatFrenchNumber(billing.taxAmount)} {currencySymbol}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                  {/* Total final */}
+                  <View style={styles.totalRowBold}>
+                    <Text>{billing.showTax ? "Total TTC :" : "Total :"}</Text>
                     <Text>
-                      {formatFrenchNumber((document as BillingInvoice).originalTotal || 0)}{" "}
+                      {formatFrenchNumber(billing.showTax ? billing.totalWithTax : billing.totalAmount)}{" "}
                       {currencySymbol}
                     </Text>
                   </View>
-                  <View style={[styles.totalRow, { color: "#4caf50" }]}>
-                    <Text style={{ color: "#4caf50" }}>
-                      Acompte versé ({(document as BillingInvoice).depositPercent}%) :
-                    </Text>
-                    <Text style={{ color: "#4caf50" }}>
-                      - {formatFrenchNumber((document as BillingInvoice).depositAmount || 0)}{" "}
-                      {currencySymbol}
-                    </Text>
-                  </View>
+                  {/* VAT message if no tax */}
+                  {!billing.showTax && (
+                    <View style={styles.totalRow}>
+                      <Text style={{ fontSize: 8 }}>{vatMessage}</Text>
+                    </View>
+                  )}
                 </>
-              )}
-              <View style={styles.totalRow}>
-                <Text>Montant :</Text>
-                <Text>
-                  {formatFrenchNumber((document as BillingInvoice).subtotal)}{" "}
-                  {currencySymbol}
-                </Text>
-              </View>
-              {(document as BillingInvoice).discount.value > 0 && (
-                <View style={styles.totalRow}>
-                  <Text>Remise :</Text>
-                  <Text>
-                    {(document as BillingInvoice).discount.type === "percentage"
-                      ? `${(document as BillingInvoice).discount.value}%`
-                      : `${formatFrenchNumber(
-                          (document as BillingInvoice).discount.value
-                        )} ${currencySymbol}`}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.totalRow}>
-                <Text>{(document as BillingInvoice).depositDeducted ? "Solde à payer :" : "Net a payer :"}</Text>
-                <Text>
-                  {formatFrenchNumber(document.totalAmount)} {currencySymbol}
-                </Text>
-              </View>
-              <View style={styles.totalRowBold}>
-                <Text style={{ fontSize: 8 }}>{vatMessage}</Text>
-              </View>
-            </>
+              );
+            })()
           )}
         </View>
 
@@ -610,15 +581,12 @@ export const FrenchPDFDocument = ({ document, type, qrCodeDataUrl }: FrenchPDFDo
             </Text>
             <Text style={styles.signatureDate}>
               Signe electroniquement le{" "}
-              {(document as Invoice).signature?.signedAt
-                ? new Date(
-                    (document as Invoice).signature!.signedAt!
-                  ).toLocaleDateString("fr-FR", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })
-                : ""}
+              {(() => {
+                const signedAt = (document as Invoice).signature?.signedAt;
+                if (!signedAt) return "";
+                const d = (signedAt as any)?.toDate ? (signedAt as any).toDate() : (signedAt as any)?.seconds ? new Date((signedAt as any).seconds * 1000) : new Date(signedAt);
+                return isNaN(d.getTime()) ? "" : d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+              })()}
             </Text>
           </View>
         )}

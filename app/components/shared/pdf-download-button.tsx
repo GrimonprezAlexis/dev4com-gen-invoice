@@ -51,10 +51,10 @@ export function PDFDownloadButton({
               document.client,
               amount,
               document.number,
-              "CHF"
+              (document.currency as "CHF" | "EUR") || "CHF"
             );
-          } else if (isBilling) {
-            // French EPC QR Code (SEPA) - only for billing invoices
+          } else if (isBilling && document.currency !== "CHF") {
+            // French EPC QR Code (SEPA) - only for EUR billing invoices
             const amount = (document as BillingInvoice).showTax
               ? (document as BillingInvoice).totalWithTax
               : document.totalAmount;

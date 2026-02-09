@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   },
   // Header container - compact
   headerContainer: {
-    marginBottom: 10,
+    marginBottom: 5,
   },
   // Top row: Logo + Company info on same line
   headerTopRow: {
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   },
   // Logo container
   logoContainer: {
-    marginRight: 8,
+    marginRight: 6,
   },
   logo: {
     // dimensions set dynamically
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   colDescription: { width: "50%" },
   colTotal: { width: "25%", textAlign: "right" },
   cellText: {
-    fontSize: 8,
+    fontSize: 8.5,
     color: COLORS.primary,
   },
   // Summary section - compact
@@ -271,6 +271,69 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: COLORS.secondary,
   },
+  // Payment account section (for non-QR-Bill cases)
+  paymentAccountSection: {
+    marginTop: 10,
+    padding: 8,
+    backgroundColor: COLORS.light,
+    borderLeftWidth: 2,
+    borderLeftColor: COLORS.accent,
+  },
+  paymentAccountTitle: {
+    fontSize: 8,
+    fontWeight: "bold",
+    fontFamily: "Helvetica-Bold",
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  paymentAccountRow: {
+    flexDirection: "row",
+    marginBottom: 2,
+  },
+  paymentAccountLabel: {
+    fontSize: 7.5,
+    color: COLORS.secondary,
+    width: 70,
+    fontWeight: "bold",
+    fontFamily: "Helvetica-Bold",
+  },
+  paymentAccountValue: {
+    fontSize: 7.5,
+    color: COLORS.primary,
+    flex: 1,
+  },
+  // QR Code for EPC (non-Swiss QR-Bill)
+  qrSection: {
+    marginTop: 10,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "flex-start",
+  },
+  qrContainer: {
+    alignItems: "center",
+    padding: 8,
+    backgroundColor: COLORS.light,
+    borderWidth: 0.5,
+    borderColor: COLORS.border,
+  },
+  qrCode: {
+    width: 70,
+    height: 70,
+    marginBottom: 4,
+  },
+  qrLabel: {
+    fontSize: 6.5,
+    color: COLORS.secondary,
+    textAlign: "center",
+  },
+  qrAmount: {
+    fontSize: 8,
+    fontWeight: "bold",
+    fontFamily: "Helvetica-Bold",
+    color: COLORS.accent,
+    textAlign: "center",
+    marginTop: 2,
+  },
   // QR-Bill section (full width image at bottom)
   qrBillSection: {
     position: "absolute",
@@ -297,8 +360,10 @@ const getLogoDimensions = (size?: "small" | "medium" | "large") => {
 };
 
 // Format Swiss date (DD.MM.YYYY)
-const formatSwissDate = (date: string | Date): string => {
-  const d = new Date(date);
+const formatSwissDate = (date: string | Date | any): string => {
+  // Handle Firestore Timestamp objects
+  const d = date?.toDate ? date.toDate() : date?.seconds ? new Date(date.seconds * 1000) : new Date(date);
+  if (isNaN(d.getTime())) return "";
   const day = d.getDate().toString().padStart(2, "0");
   const month = (d.getMonth() + 1).toString().padStart(2, "0");
   const year = d.getFullYear();
@@ -315,11 +380,12 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
   const isQuote = type === "quote";
   const isBilling = type === "billing";
   const title = isQuote ? "Devis" : "Facture";
+  const currencySymbol = doc.currency === "EUR" ? "EUR" : "CHF";
 
   // Calculate totals
   const subtotal = doc.subtotal;
   let discountAmount = 0;
-  if (doc.discount.value > 0) {
+  if (doc.discount?.value > 0) {
     if (doc.discount.type === "percentage") {
       discountAmount = (subtotal * doc.discount.value) / 100;
     } else {
@@ -345,8 +411,12 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
   const originalTotal = depositDeducted ? billingDoc.originalTotal : undefined;
   const deductedAmount = depositDeducted ? billingDoc.depositAmount : undefined;
 
-  // Determine if we should show QR-Bill
+  // Determine if we should show QR-Bill (Swiss QR at bottom of page)
   const showQRBill = qrCodeDataUrl && doc.paymentAccount?.country === "CH";
+  // Show payment account details (IBAN/BIC) when no Swiss QR-Bill
+  const showPaymentAccount = doc.paymentAccount && !showQRBill;
+  // Show EPC QR code inline when available but not a Swiss QR-Bill
+  const showEpcQR = qrCodeDataUrl && !showQRBill;
 
   return (
     <Document>
@@ -417,7 +487,7 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
                 <Text style={[styles.cellText, styles.colQuantity]}>{service.quantity}</Text>
                 <Text style={[styles.cellText, styles.colDescription]}>{service.description}</Text>
                 <Text style={[styles.cellText, styles.colTotal]}>
-                  CHF {formatSwissNumber(service.amount)}
+                  {currencySymbol} {formatSwissNumber(service.amount)}
                 </Text>
               </View>
             ))}
@@ -425,71 +495,138 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
 
           {/* Summary Section */}
           <View style={styles.summarySection}>
-            {/* Original total if deposit deducted */}
-            {depositDeducted && originalTotal && (
+            {isBilling ? (
+              (() => {
+                const hasDeposit = depositDeducted && originalTotal;
+                const additionalServicesTotal = billingDoc.additionalServicesTotal || 0;
+                const hasAdditional = additionalServicesTotal > 0;
+                const soldeHT = hasDeposit
+                  ? (originalTotal || 0) - (deductedAmount || 0)
+                  : totalHT - additionalServicesTotal;
+
+                return (
+                  <>
+                    {/* Total devis */}
+                    {hasDeposit && (
+                      <View style={styles.summaryRow}>
+                        <Text style={[styles.summaryLabel, { fontWeight: "normal" }]}>Total devis</Text>
+                        <Text style={[styles.summaryValue, { color: COLORS.secondary }]}>
+                          {currencySymbol} {formatSwissNumber(originalTotal || 0)}
+                        </Text>
+                      </View>
+                    )}
+                    {/* Acompte versé */}
+                    {hasDeposit && (
+                      <View style={styles.summaryRow}>
+                        <Text style={[styles.summaryLabel, { fontWeight: "normal", color: "#4caf50" }]}>
+                          Acompte versé
+                        </Text>
+                        <Text style={[styles.summaryValue, { color: "#4caf50" }]}>
+                          -{currencySymbol} {formatSwissNumber(deductedAmount || 0)}
+                        </Text>
+                      </View>
+                    )}
+                    {/* Solde HT */}
+                    {hasDeposit && (
+                      <>
+                        <View style={styles.summaryDivider} />
+                        <View style={styles.summaryRow}>
+                          <Text style={styles.summaryLabel}>Solde HT</Text>
+                          <Text style={styles.summaryValue}>
+                            {currencySymbol} {formatSwissNumber(soldeHT)}
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                    {/* If no deposit, show base amount */}
+                    {!hasDeposit && (
+                      <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>Montant HT</Text>
+                        <Text style={styles.summaryValue}>
+                          {currencySymbol} {formatSwissNumber(totalHT - additionalServicesTotal)}
+                        </Text>
+                      </View>
+                    )}
+                    {/* Services additionnels */}
+                    {hasAdditional && (
+                      <View style={styles.summaryRow}>
+                        <Text style={[styles.summaryLabel, { fontWeight: "normal", color: "#d97706" }]}>
+                          Services additionnels
+                        </Text>
+                        <Text style={[styles.summaryValue, { color: "#d97706" }]}>
+                          +{currencySymbol} {formatSwissNumber(additionalServicesTotal)}
+                        </Text>
+                      </View>
+                    )}
+                    {/* Discount */}
+                    {discountAmount > 0 && (
+                      <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>
+                          Remise {doc.discount.type === "percentage" ? `(${doc.discount.value}%)` : ""}
+                        </Text>
+                        <Text style={styles.summaryValue}>-{currencySymbol} {formatSwissNumber(discountAmount)}</Text>
+                      </View>
+                    )}
+                    {/* TVA if applicable */}
+                    {showTax && (
+                      <>
+                        <View style={styles.summaryDivider} />
+                        <View style={styles.summaryRow}>
+                          <Text style={[styles.summaryLabel, { fontWeight: "normal" }]}>TVA ({taxRate}%)</Text>
+                          <Text style={[styles.summaryValue, { color: COLORS.primary }]}>
+                            {currencySymbol} {formatSwissNumber(taxAmount)}
+                          </Text>
+                        </View>
+                      </>
+                    )}
+                    {/* Total final */}
+                    <View style={styles.totalRow}>
+                      <Text style={styles.totalLabel}>{showTax ? "Total TTC" : "Total"}</Text>
+                      <Text style={styles.totalValue}>{currencySymbol} {formatSwissNumber(totalTTC)}</Text>
+                    </View>
+                  </>
+                );
+              })()
+            ) : (
               <>
+                {/* Quote summary (unchanged) */}
                 <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { fontWeight: "normal" }]}>Total du devis</Text>
-                  <Text style={[styles.summaryValue, { color: COLORS.secondary }]}>
-                    CHF {formatSwissNumber(originalTotal)}
-                  </Text>
+                  <Text style={styles.summaryLabel}>Somme</Text>
+                  <Text style={styles.summaryValue}>{currencySymbol} {formatSwissNumber(subtotal)}</Text>
                 </View>
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { fontWeight: "normal", color: "#4caf50" }]}>
-                    Acompte versé ({billingDoc.depositPercent}%)
-                  </Text>
-                  <Text style={[styles.summaryValue, { color: "#4caf50" }]}>
-                    - CHF {formatSwissNumber(deductedAmount || 0)}
-                  </Text>
+                {discountAmount > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>
+                      Remise {doc.discount.type === "percentage" ? `(${doc.discount.value}%)` : ""}
+                    </Text>
+                    <Text style={styles.summaryValue}>-{currencySymbol} {formatSwissNumber(discountAmount)}</Text>
+                  </View>
+                )}
+                {showTax && (
+                  <>
+                    <View style={styles.summaryDivider} />
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Total HT</Text>
+                      <Text style={styles.summaryValue}>{currencySymbol} {formatSwissNumber(totalHT)}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { fontWeight: "normal" }]}>TVA</Text>
+                      <Text style={[styles.summaryValue, { color: COLORS.primary }]}>{taxRate}%</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { fontWeight: "normal" }]}>Montant TVA</Text>
+                      <Text style={[styles.summaryValue, { color: COLORS.primary }]}>
+                        {currencySymbol} {formatSwissNumber(taxAmount)}
+                      </Text>
+                    </View>
+                  </>
+                )}
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{showTax ? "Total TTC" : "Total"}</Text>
+                  <Text style={styles.totalValue}>{currencySymbol} {formatSwissNumber(totalTTC)}</Text>
                 </View>
-                <View style={styles.summaryDivider} />
               </>
             )}
-
-            {/* Subtotal */}
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>
-                {depositDeducted ? "Solde" : "Somme"}
-              </Text>
-              <Text style={styles.summaryValue}>CHF {formatSwissNumber(subtotal)}</Text>
-            </View>
-
-            {/* Discount */}
-            {discountAmount > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>
-                  Remise {doc.discount.type === "percentage" ? `(${doc.discount.value}%)` : ""}
-                </Text>
-                <Text style={styles.summaryValue}>- CHF {formatSwissNumber(discountAmount)}</Text>
-              </View>
-            )}
-
-            {/* Total HT if showing tax */}
-            {showTax && (
-              <>
-                <View style={styles.summaryDivider} />
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Total HT</Text>
-                  <Text style={styles.summaryValue}>CHF {formatSwissNumber(totalHT)}</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { fontWeight: "normal" }]}>TVA</Text>
-                  <Text style={[styles.summaryValue, { color: COLORS.primary }]}>{taxRate}%</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { fontWeight: "normal" }]}>Montant TVA</Text>
-                  <Text style={[styles.summaryValue, { color: COLORS.primary }]}>
-                    CHF {formatSwissNumber(taxAmount)}
-                  </Text>
-                </View>
-              </>
-            )}
-
-            {/* Grand Total */}
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{showTax ? "Total TTC" : "Total"}</Text>
-              <Text style={styles.totalValue}>CHF {formatSwissNumber(totalTTC)}</Text>
-            </View>
           </View>
 
           {/* Conditions (for quotes) */}
@@ -513,10 +650,10 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
             <View style={styles.depositInfo}>
               {/* <Text style={styles.depositTitle}>Acompte demandé</Text> */}
               <Text style={styles.depositText}>
-                Acompte : {depositPercent}% soit CHF {formatSwissNumber(depositAmount)}
+                Acompte : {depositPercent}% soit {currencySymbol} {formatSwissNumber(depositAmount)}
               </Text>
               <Text style={styles.depositText}>
-                Solde à la livraison : CHF {formatSwissNumber(quoteDoc.remainingBalance)}
+                Solde à la livraison : {currencySymbol} {formatSwissNumber(quoteDoc.remainingBalance)}
               </Text>
               {/* <Text style={styles.depositText}>
                 Veuillez utiliser le bulletin de versement ci-dessous pour régler l'acompte.
@@ -537,6 +674,44 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
             <Text style={styles.vatNote}>
               Entreprise non assujettie à la TVA (art. 10 al. 2 let. a LTVA)
             </Text>
+          )}
+
+          {/* Payment Account Details (when no Swiss QR-Bill) */}
+          {showPaymentAccount && (
+            <View style={{ flexDirection: "row", marginTop: 10, gap: 10 }}>
+              <View style={[styles.paymentAccountSection, { flex: 1 }]}>
+                <Text style={styles.paymentAccountTitle}>Coordonnées bancaires</Text>
+                <View style={styles.paymentAccountRow}>
+                  <Text style={styles.paymentAccountLabel}>IBAN :</Text>
+                  <Text style={styles.paymentAccountValue}>
+                    {doc.paymentAccount!.iban}
+                  </Text>
+                </View>
+                <View style={styles.paymentAccountRow}>
+                  <Text style={styles.paymentAccountLabel}>BIC / SWIFT :</Text>
+                  <Text style={styles.paymentAccountValue}>
+                    {doc.paymentAccount!.bic}
+                  </Text>
+                </View>
+                <View style={styles.paymentAccountRow}>
+                  <Text style={styles.paymentAccountLabel}>Titulaire :</Text>
+                  <Text style={styles.paymentAccountValue}>
+                    {doc.paymentAccount!.accountHolder}
+                  </Text>
+                </View>
+              </View>
+
+              {/* EPC QR Code alongside payment details */}
+              {showEpcQR && (
+                <View style={styles.qrContainer}>
+                  <Image src={qrCodeDataUrl} style={styles.qrCode} />
+                  <Text style={styles.qrLabel}>Scannez pour payer</Text>
+                  <Text style={styles.qrAmount}>
+                    {currencySymbol} {formatSwissNumber(showTax ? totalTTC : totalHT)}
+                  </Text>
+                </View>
+              )}
+            </View>
           )}
 
           {/* Signature Section (for quotes) */}

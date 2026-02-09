@@ -42,24 +42,41 @@ export function BillingInvoiceEditDialog({ invoice, onUpdate }: BillingInvoiceEd
         </DialogHeader>
         <div className="flex-1 overflow-hidden p-6">
           <BillingForm
-            quote={{
-              id: invoice.id,
-              number: invoice.quoteNumber,
-              date: invoice.date,
-              validUntil: invoice.dueDate,
-              company: invoice.company,
-              client: invoice.client,
-              services: invoice.services,
-              subtotal: invoice.totalAmount,
-              discount: { type: 'fixed', value: 0 },
-              totalAmount: invoice.totalAmount,
-              deposit: 0,
-              remainingBalance: 0,
-              paymentTerms: "",
-              deliveryTime: "",
-              status: 'accepted',
-              createdAt: invoice.createdAt
-            }}
+            quote={(() => {
+              // Filter out additional services to get only the original quote services
+              const additionalIds = new Set(
+                (invoice.additionalServices || []).map((s) => s.id)
+              );
+              const quoteServices = invoice.services.filter(
+                (s) => !additionalIds.has(s.id)
+              );
+              const quoteSubtotal = quoteServices.reduce((sum, s) => sum + s.amount, 0);
+              // Reconstruct original quote total and deposit info
+              const originalTotal = invoice.originalTotal || quoteSubtotal;
+              const depositPercent = invoice.depositPercent || 0;
+              const depositAmt = originalTotal * (depositPercent / 100);
+              return {
+                id: invoice.id,
+                number: invoice.quoteNumber,
+                date: invoice.date,
+                validUntil: invoice.dueDate,
+                company: invoice.company,
+                client: invoice.client,
+                services: quoteServices,
+                subtotal: quoteSubtotal,
+                discount: invoice.discount || { type: 'fixed' as const, value: 0 },
+                totalAmount: originalTotal,
+                deposit: depositPercent,
+                remainingBalance: originalTotal - depositAmt,
+                paymentTerms: "",
+                deliveryTime: "",
+                status: 'accepted' as const,
+                createdAt: invoice.createdAt,
+                currency: invoice.currency,
+                billingCountry: invoice.billingCountry,
+                paymentAccount: invoice.paymentAccount,
+              };
+            })()}
             invoice={invoice}
             onSave={handleUpdate}
           />

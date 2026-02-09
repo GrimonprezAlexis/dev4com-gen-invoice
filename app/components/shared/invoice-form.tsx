@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Invoice, Service, Company, PaymentAccount, BillingCountry } from "@/app/types";
-import { getDefaultCurrency, getDefaultTaxRate } from "@/lib/swiss-utils";
+import { getDefaultTaxRate } from "@/lib/swiss-utils";
 import { TemplateSelector } from "../template-selector";
 import { AIRewriteDialog } from "../ai-rewrite-dialog";
 import { getPaymentAccounts } from "@/lib/firebase";
@@ -181,9 +181,6 @@ export function InvoiceForm({
 
   const onChangeBillingCountry = (country: BillingCountry) => {
     setBillingCountry(country);
-    const newCurrency = getDefaultCurrency(country);
-    setCurrency(newCurrency);
-    setValue("currency", newCurrency);
     setTaxRate(getDefaultTaxRate(country));
     if (country === "CH") setShowTax(false);
   };
@@ -206,13 +203,13 @@ export function InvoiceForm({
         {/* Row 1: Country + Currency + TVA + Template */}
         <div className="flex flex-wrap gap-2 items-end">
           <div className="w-24">
-            <Label className="text-xs text-muted-foreground mb-1 block">Pays</Label>
+            <Label className="text-xs text-muted-foreground mb-1 block">Template</Label>
             <Select value={billingCountry} onValueChange={(v: BillingCountry) => onChangeBillingCountry(v)}>
               <SelectTrigger className="h-8 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="FR">🇫🇷 France</SelectItem>
+                <SelectItem value="FR">🇫🇷 Français</SelectItem>
                 <SelectItem value="CH">🇨🇭 Suisse</SelectItem>
               </SelectContent>
             </Select>

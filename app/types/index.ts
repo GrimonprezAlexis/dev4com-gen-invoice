@@ -101,4 +101,6 @@ export interface BillingInvoice {
   depositPercent?: number;
   depositAmount?: number;
   originalTotal?: number;
+  additionalServicesTotal?: number;
+  additionalServices?: { id: string; description: string; amount: number }[];
 }

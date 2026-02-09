@@ -194,6 +194,31 @@ export const getInvoices = async (userId: string) => {
   }
 };
 
+// Helper to remove undefined values (Firestore rejects them)
+const cleanUndefined = (obj: any): any => {
+  if (obj === null || obj === undefined) return null;
+  if (Array.isArray(obj)) return obj.map(cleanUndefined);
+  if (typeof obj === 'object' && !(obj instanceof Date)) {
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = cleanUndefined(value);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+};
+
+// Helper to safely convert a date value to a JS Date
+const toDate = (date: any): Date => {
+  if (!date) return new Date();
+  if (date?.toDate) return date.toDate();
+  if (date?.seconds) return new Date(date.seconds * 1000);
+  const d = new Date(date);
+  return isNaN(d.getTime()) ? new Date() : d;
+};
+
 // Billing Invoice operations
 export const saveBillingInvoice = async (invoice: BillingInvoice, userId: string) => {
   try {
@@ -211,18 +236,26 @@ export const saveBillingInvoice = async (invoice: BillingInvoice, userId: string
 
     const quoteDoc = querySnapshot.docs[0];
 
-    // Save the billing invoice
+    // Check if document already exists (update vs create)
     const docRef = doc(db, "billingInvoices", invoice.id);
-    await setDoc(docRef, {
+    const existingDoc = await getDoc(docRef);
+    const existingCreatedAt = existingDoc.exists()
+      ? existingDoc.data().createdAt
+      : null;
+
+    // Clean the invoice data (remove undefined values)
+    const cleanedInvoice = cleanUndefined({
       ...invoice,
       userId,
       currency: invoice.currency || "EUR",
       billingCountry: invoice.billingCountry || "FR",
-      createdAt: new Date(),
-      date: new Date(invoice.date),
-      dueDate: new Date(invoice.dueDate),
-      paymentDate: invoice.paymentDate ? new Date(invoice.paymentDate) : null,
+      createdAt: existingCreatedAt || new Date(),
+      date: toDate(invoice.date),
+      dueDate: toDate(invoice.dueDate),
+      paymentDate: invoice.paymentDate ? toDate(invoice.paymentDate) : null,
     });
+
+    await setDoc(docRef, cleanedInvoice);
 
     // Update the quote to indicate a billing invoice was generated
     await updateDoc(doc(db, "invoices", quoteDoc.id), {

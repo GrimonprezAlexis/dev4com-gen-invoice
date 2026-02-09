@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BillingInvoice, Invoice, BillingCountry, PaymentAccount } from "@/app/types";
-import { getDefaultCurrency, getDefaultTaxRate } from "@/lib/swiss-utils";
-import { CreditCard, ChevronDown, ChevronUp } from "lucide-react";
+import { getDefaultTaxRate } from "@/lib/swiss-utils";
+import { CreditCard, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { getPaymentAccounts } from "@/lib/firebase";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -25,14 +25,27 @@ interface BillingInvoiceFormProps {
   onSave: (invoice: BillingInvoice) => void;
 }
 
+// Helper to convert any date value to YYYY-MM-DD string for form inputs
+const toDateInputValue = (date: any): string => {
+  if (!date) return new Date().toISOString().split("T")[0];
+  // Firestore Timestamp
+  if (date?.toDate) return date.toDate().toISOString().split("T")[0];
+  if (date?.seconds) return new Date(date.seconds * 1000).toISOString().split("T")[0];
+  // ISO string or date string
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return new Date().toISOString().split("T")[0];
+  return d.toISOString().split("T")[0];
+};
+
 export function BillingInvoiceForm({
   quote,
   invoice,
   onSave,
 }: BillingInvoiceFormProps) {
   const { user } = useAuth();
-  const [taxRate, setTaxRate] = useState(20);
-  const [showTax, setShowTax] = useState<boolean>(taxRate > 0);
+  const isEditing = !!invoice;
+  const [taxRate, setTaxRate] = useState(invoice?.taxRate || 20);
+  const [showTax, setShowTax] = useState<boolean>(invoice?.showTax ?? (invoice?.taxRate ? invoice.taxRate > 0 : false));
   const [currency, setCurrency] = useState<string>(
     invoice?.currency || quote.currency || "EUR"
   );
@@ -43,7 +56,15 @@ export function BillingInvoiceForm({
   const [selectedPaymentAccount, setSelectedPaymentAccount] = useState<PaymentAccount | undefined>(
     invoice?.paymentAccount || quote.paymentAccount
   );
-  const [showNotes, setShowNotes] = useState(false);
+  const [showNotes, setShowNotes] = useState(!!invoice?.notes);
+  const [additionalServices, setAdditionalServices] = useState<
+    { id: string; description: string; amount: number }[]
+  >(invoice?.additionalServices || []);
+  const [showAdditionalServices, setShowAdditionalServices] = useState(
+    (invoice?.additionalServices?.length || 0) > 0
+  );
+
+  const additionalTotal = additionalServices.reduce((sum, s) => sum + s.amount, 0);
 
   // Deposit deduction
   const hasDeposit = quote.deposit > 0;
@@ -73,36 +94,57 @@ export function BillingInvoiceForm({
   }, [user, quote.paymentAccount]);
 
   const { register, handleSubmit, setValue } = useForm<BillingInvoice>({
-    defaultValues: invoice || {
-      id: crypto.randomUUID(),
-      company: quote.company,
-      client: quote.client,
-      services: quote.services,
-      subtotal: quote.subtotal,
-      discount: quote.discount,
-      taxRate: 20,
-      number: `FAC-${Date.now()}`,
-      date: new Date().toISOString().split("T")[0],
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-      paymentStatus: "pending",
-      quoteNumber: quote.number,
-      totalAmount: quote.totalAmount,
-      totalWithTax: quote.totalAmount * 1.2,
-      taxAmount: quote.totalAmount * 0.2,
-      createdAt: new Date(),
-      currency: quote.currency || "EUR",
-    },
+    defaultValues: invoice
+      ? {
+          ...invoice,
+          date: toDateInputValue(invoice.date),
+          dueDate: toDateInputValue(invoice.dueDate),
+        }
+      : {
+          id: crypto.randomUUID(),
+          company: quote.company,
+          client: quote.client,
+          services: quote.services,
+          subtotal: quote.subtotal,
+          discount: quote.discount,
+          taxRate: 20,
+          number: `FAC-${Date.now()}`,
+          date: new Date().toISOString().split("T")[0],
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+          paymentStatus: "pending",
+          quoteNumber: quote.number,
+          totalAmount: quote.totalAmount,
+          totalWithTax: quote.totalAmount * 1.2,
+          taxAmount: quote.totalAmount * 0.2,
+          createdAt: new Date(),
+          currency: quote.currency || "EUR",
+        },
   });
 
   const onSubmit = (data: BillingInvoice) => {
     const finalTaxRate = showTax ? taxRate : 0;
-    const finalBaseAmount = deductDeposit ? quote.remainingBalance : quote.totalAmount;
+    const finalBaseAmount = (deductDeposit ? quote.remainingBalance : quote.totalAmount) + additionalTotal;
+
+    const allServices = [
+      ...quote.services,
+      ...additionalServices.map((s) => ({
+        id: s.id,
+        quantity: 1,
+        description: s.description,
+        unitPrice: s.amount,
+        amount: s.amount,
+      })),
+    ];
+    const newSubtotal = allServices.reduce((sum, s) => sum + s.amount, 0);
+
     const taxAmountCalc = (finalBaseAmount * finalTaxRate) / 100;
     const totalWithTaxCalc = finalBaseAmount + taxAmountCalc;
     const newInvoice: BillingInvoice = {
       ...data,
+      services: allServices,
+      subtotal: newSubtotal,
       totalAmount: finalBaseAmount,
       taxAmount: taxAmountCalc,
       totalWithTax: totalWithTaxCalc,
@@ -113,8 +155,10 @@ export function BillingInvoiceForm({
       paymentAccount: selectedPaymentAccount,
       depositDeducted: deductDeposit && hasDeposit,
       depositPercent: hasDeposit ? quote.deposit : undefined,
-      depositAmount: hasDeposit ? depositAmount : undefined,
-      originalTotal: hasDeposit ? quote.totalAmount : undefined,
+      depositAmount: hasDeposit ? depositAmount : 0,
+      originalTotal: hasDeposit ? quote.totalAmount : 0,
+      additionalServicesTotal: additionalTotal > 0 ? additionalTotal : 0,
+      additionalServices: additionalServices.length > 0 ? additionalServices : [],
     };
     onSave(newInvoice);
   };
@@ -126,10 +170,7 @@ export function BillingInvoiceForm({
 
   const onChangeBillingCountry = (country: BillingCountry) => {
     setBillingCountry(country);
-    const newCurrency = getDefaultCurrency(country);
     const newTaxRate = getDefaultTaxRate(country);
-    setCurrency(newCurrency);
-    setValue("currency", newCurrency);
     setTaxRate(newTaxRate);
     if (country === "CH") {
       setShowTax(false);
@@ -145,13 +186,13 @@ export function BillingInvoiceForm({
         {/* Row 1: Country + Currency + TVA */}
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label className="text-xs text-muted-foreground mb-1 block">Pays</Label>
+            <Label className="text-xs text-muted-foreground mb-1 block">Template</Label>
             <Select value={billingCountry} onValueChange={(value: BillingCountry) => onChangeBillingCountry(value)}>
               <SelectTrigger className="h-8 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="FR">🇫🇷 France</SelectItem>
+                <SelectItem value="FR">🇫🇷 Français</SelectItem>
                 <SelectItem value="CH">🇨🇭 Suisse</SelectItem>
               </SelectContent>
             </Select>
@@ -222,6 +263,73 @@ export function BillingInvoiceForm({
             </label>
           </div>
         )}
+
+        {/* Additional services (collapsible) */}
+        <div className="border rounded-lg border-amber-200 dark:border-amber-800">
+          <button
+            type="button"
+            onClick={() => setShowAdditionalServices(!showAdditionalServices)}
+            className="flex items-center justify-between w-full p-2 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg"
+          >
+            <span>Services additionnels{additionalServices.length > 0 ? ` (${additionalServices.length})` : ""}</span>
+            {showAdditionalServices ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          {showAdditionalServices && (
+            <div className="px-2 pb-2 space-y-2">
+              {additionalServices.map((service) => (
+                <div key={service.id} className="flex items-center gap-2">
+                  <Input
+                    value={service.description}
+                    onChange={(e) =>
+                      setAdditionalServices((prev) =>
+                        prev.map((s) =>
+                          s.id === service.id ? { ...s, description: e.target.value } : s
+                        )
+                      )
+                    }
+                    placeholder="Description"
+                    className="h-8 text-sm flex-1"
+                  />
+                  <Input
+                    type="number"
+                    value={service.amount || ""}
+                    onChange={(e) =>
+                      setAdditionalServices((prev) =>
+                        prev.map((s) =>
+                          s.id === service.id ? { ...s, amount: parseFloat(e.target.value) || 0 } : s
+                        )
+                      )
+                    }
+                    placeholder="Montant"
+                    className="h-8 text-sm w-24"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAdditionalServices((prev) => prev.filter((s) => s.id !== service.id))
+                    }
+                    className="text-red-400 hover:text-red-600 p-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setAdditionalServices((prev) => [
+                    ...prev,
+                    { id: crypto.randomUUID(), description: "", amount: 0 },
+                  ])
+                }
+                className="flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
+              >
+                <Plus className="w-4 h-4" />
+                Ajouter un service
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Payment account (if available) */}
         {paymentAccounts.length > 0 && (
@@ -298,16 +406,22 @@ export function BillingInvoiceForm({
               <span className="text-slate-300">{deductDeposit ? "Solde HT" : "Montant HT"}</span>
               <span>{baseAmount.toLocaleString("fr-FR")} {currencySymbol}</span>
             </div>
+            {additionalTotal > 0 && (
+              <div className="flex justify-between text-amber-400">
+                <span>Services additionnels</span>
+                <span>+{additionalTotal.toLocaleString("fr-FR")} {currencySymbol}</span>
+              </div>
+            )}
             {showTax && (
               <div className="flex justify-between text-blue-400">
                 <span>TVA ({taxRate}%)</span>
-                <span>{((baseAmount * taxRate) / 100).toLocaleString("fr-FR")} {currencySymbol}</span>
+                <span>{(((baseAmount + additionalTotal) * taxRate) / 100).toLocaleString("fr-FR")} {currencySymbol}</span>
               </div>
             )}
             <div className="flex justify-between pt-2 border-t border-slate-700 text-base font-bold">
               <span>{showTax ? "Total TTC" : "Total"}</span>
               <span className="text-green-400">
-                {(baseAmount * (1 + (showTax ? taxRate : 0) / 100)).toLocaleString("fr-FR")} {currencySymbol}
+                {((baseAmount + additionalTotal) * (1 + (showTax ? taxRate : 0) / 100)).toLocaleString("fr-FR")} {currencySymbol}
               </span>
             </div>
           </div>
@@ -320,7 +434,7 @@ export function BillingInvoiceForm({
           type="submit"
           className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold h-10"
         >
-          Créer la facture
+          {isEditing ? "Modifier la facture" : "Créer la facture"}
         </Button>
       </div>
     </form>

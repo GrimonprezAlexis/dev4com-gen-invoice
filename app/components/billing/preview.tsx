@@ -30,10 +30,10 @@ export function BillingPreview({ invoice }: BillingPreviewProps) {
               invoice.client,
               amount,
               invoice.number,
-              "CHF"
+              (invoice.currency as "CHF" | "EUR") || "CHF"
             );
-          } else {
-            // French EPC QR Code (SEPA)
+          } else if (invoice.currency !== "CHF") {
+            // French EPC QR Code (SEPA) - only for EUR
             const amount = invoice.showTax
               ? invoice.totalWithTax
               : invoice.totalAmount;
@@ -43,6 +43,9 @@ export function BillingPreview({ invoice }: BillingPreviewProps) {
               invoice.number,
               invoice.company.name
             );
+          } else {
+            // No QR for non-Swiss template with CHF (EPC only supports EUR)
+            return;
           }
           setQrCodeDataUrl(qrCode);
         } catch (error) {

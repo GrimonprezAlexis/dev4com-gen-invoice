@@ -9,6 +9,20 @@ interface BillingEmailDialogProps {
 }
 
 export function BillingEmailDialog({ invoice, onEmailSent }: BillingEmailDialogProps) {
+  const currencySymbol = invoice.currency === "CHF" ? "CHF" : "€";
+  const finalAmount = invoice.showTax
+    ? invoice.totalWithTax.toLocaleString("fr-FR")
+    : invoice.totalAmount.toLocaleString("fr-FR");
+
+  const dueDateStr = (() => {
+    const d = (invoice.dueDate as any)?.toDate
+      ? (invoice.dueDate as any).toDate()
+      : new Date(invoice.dueDate);
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString("fr-FR");
+  })();
+
+  const clientFirstName = invoice.client.name.split(" ")[0];
+
   return (
     <BaseEmailDialog
       document={invoice}
@@ -17,26 +31,16 @@ export function BillingEmailDialog({ invoice, onEmailSent }: BillingEmailDialogP
       emailTemplate={{
         from: "contact@dev4com.com",
         subject: `Facture ${invoice.number} - ${invoice.company.name}`,
-        defaultMessage: `
-Hello,
+        defaultMessage: `Bonjour${clientFirstName ? ` ${clientFirstName}` : ""},
 
-Vous trouverez ci-joint la facture ${invoice.number} correspondant à votre commande.
+Veuillez trouver ci-joint la facture ${invoice.number} d'un montant de ${finalAmount} ${currencySymbol}${invoice.showTax ? " TTC" : ""}${dueDateStr ? `, payable avant le ${dueDateStr}` : ""}.
 
-Résumé de la facture :
-• Montant HT : ${invoice.totalAmount.toLocaleString('fr-FR')} €
-• TVA (${invoice.taxRate}%) : ${invoice.taxAmount.toLocaleString('fr-FR')} €
-• Montant TTC : ${invoice.totalWithTax.toLocaleString('fr-FR')} €
-• Date d'échéance : ${new Date(invoice.dueDate).toLocaleDateString('fr-FR')}
+Ce fut un plaisir de collaborer avec vous sur ce projet, merci pour votre confiance.
 
-Si vous avez des questions concernant cette facture, n'hésitez pas à me contacter.
+Je reste disponible si vous avez la moindre question.
 
-Je reste à votre disposition pour tout complément d'information.
-
-Cordialement,
-${invoice.company.name}
-${invoice.company.address}
-SIREN : ${invoice.company.siren}
-        `.trim()
+Bien cordialement,
+${invoice.company.name}`,
       }}
     />
   );
