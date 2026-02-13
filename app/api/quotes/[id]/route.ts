@@ -179,13 +179,144 @@ const generateOwnerNotificationEmail = (quote: any, signatureName: string, clien
   `;
 };
 
+const formatCurrencyWithSymbol = (amount: number, currency: string) => {
+  if (currency === 'CHF') {
+    return new Intl.NumberFormat("de-CH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount) + " CHF";
+  }
+  return formatCurrency(amount);
+};
+
+const generateClientPaymentEmail = (quote: any, clientName: string, paidAmount: number, currency: string, isDeposit: boolean) => {
+  return `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+      <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 32px; text-align: center;">
+          <div style="width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+            <span style="font-size: 32px;">💳</span>
+          </div>
+          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Paiement confirmé</h1>
+        </div>
+
+        <div style="padding: 32px;">
+          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+            Bonjour <strong>${clientName}</strong>,
+          </p>
+          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+            Nous vous confirmons que votre paiement a bien été reçu et traité avec succès.
+          </p>
+
+          <div style="background: #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <h2 style="color: #3b82f6; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px 0;">Détails du paiement</h2>
+            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
+              <span style="color: #94a3b8; font-size: 14px;">Devis n°:</span>
+              <span style="color: white; font-size: 14px; float: right; font-weight: 600;">${quote.number}</span>
+            </div>
+            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
+              <span style="color: #94a3b8; font-size: 14px;">${isDeposit ? `Acompte (${quote.deposit}%)` : 'Montant payé'}:</span>
+              <span style="color: #10b981; font-size: 18px; float: right; font-weight: 700;">${formatCurrencyWithSymbol(paidAmount, currency)}</span>
+            </div>
+            ${isDeposit ? `
+            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
+              <span style="color: #94a3b8; font-size: 14px;">Total du devis:</span>
+              <span style="color: white; font-size: 14px; float: right;">${formatCurrencyWithSymbol(quote.totalAmount, currency)}</span>
+            </div>
+            <div style="padding-top: 8px;">
+              <span style="color: #94a3b8; font-size: 14px;">Solde restant:</span>
+              <span style="color: white; font-size: 14px; float: right;">${formatCurrencyWithSymbol(quote.totalAmount - paidAmount, currency)}</span>
+            </div>
+            ` : `
+            <div style="padding-top: 8px;">
+              <span style="color: #94a3b8; font-size: 14px;">Émetteur:</span>
+              <span style="color: #3b82f6; font-size: 14px; float: right;">${quote.company?.name || 'N/A'}</span>
+            </div>
+            `}
+          </div>
+
+          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 8px 0;">
+            L'équipe de <strong>${quote.company?.name || 'Dev4Ecom'}</strong> vous recontactera prochainement pour les prochaines étapes.
+          </p>
+          <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0;">
+            Merci pour votre confiance !
+          </p>
+        </div>
+
+        <div style="background: #f1f5f9; padding: 20px 32px; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            Cet email a été envoyé automatiquement suite à votre paiement.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const generateOwnerPaymentEmail = (quote: any, clientName: string, clientEmail: string, paidAmount: number, currency: string, isDeposit: boolean) => {
+  return `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
+      <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px; text-align: center;">
+          <div style="width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+            <span style="font-size: 32px;">💰</span>
+          </div>
+          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Paiement reçu !</h1>
+        </div>
+
+        <div style="padding: 32px;">
+          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+            Un paiement vient d'être reçu pour le devis <strong>${quote.number}</strong>.
+          </p>
+
+          <div style="background: #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <h2 style="color: #3b82f6; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px 0;">Détails du paiement</h2>
+            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
+              <span style="color: #94a3b8; font-size: 14px;">Devis n°:</span>
+              <span style="color: white; font-size: 14px; float: right; font-weight: 600;">${quote.number}</span>
+            </div>
+            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
+              <span style="color: #94a3b8; font-size: 14px;">Client:</span>
+              <span style="color: #3b82f6; font-size: 14px; float: right;">${clientName}</span>
+            </div>
+            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
+              <span style="color: #94a3b8; font-size: 14px;">Email:</span>
+              <span style="color: white; font-size: 14px; float: right;">${clientEmail}</span>
+            </div>
+            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
+              <span style="color: #94a3b8; font-size: 14px;">${isDeposit ? `Acompte reçu (${quote.deposit}%)` : 'Montant reçu'}:</span>
+              <span style="color: #10b981; font-size: 18px; float: right; font-weight: 700;">${formatCurrencyWithSymbol(paidAmount, currency)}</span>
+            </div>
+            ${isDeposit ? `
+            <div style="padding-top: 8px;">
+              <span style="color: #94a3b8; font-size: 14px;">Solde restant:</span>
+              <span style="color: #f59e0b; font-size: 14px; float: right; font-weight: 600;">${formatCurrencyWithSymbol(quote.totalAmount - paidAmount, currency)}</span>
+            </div>
+            ` : ''}
+          </div>
+
+          <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0; text-align: center;">
+            ${isDeposit ? 'Pensez à envoyer la facture pour le solde restant.' : 'Le paiement complet a été reçu.'}
+          </p>
+        </div>
+
+        <div style="background: #f1f5f9; padding: 20px 32px; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            Notification automatique de paiement Stripe
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const body = await request.json();
-    const { status, signature } = body;
+    const { status, signature, payment } = body;
 
     const docRef = doc(db, "invoices", params.id);
     const docSnap = await getDoc(docRef);
@@ -200,23 +331,38 @@ export async function PATCH(
     const quoteData = docSnap.data();
     const signedAt = new Date();
 
-    await updateDoc(docRef, {
-      status,
-      ...(signature && {
-        signature: {
-          name: signature.name,
-          email: signature.email,
-          signedAt,
-        }
-      }),
-    });
+    const updateData: Record<string, any> = {};
 
-    // Send confirmation emails if quote is accepted
+    if (status) {
+      updateData.status = status;
+    }
+
+    if (signature) {
+      updateData.signature = {
+        name: signature.name,
+        email: signature.email,
+        signedAt,
+      };
+    }
+
+    if (payment) {
+      updateData.payment = {
+        stripeSessionId: payment.stripeSessionId,
+        amount: payment.amount,
+        currency: payment.currency,
+        paidAt: new Date(),
+      };
+      updateData.paymentStatus = "paid";
+      updateData.status = "paid";
+    }
+
+    await updateDoc(docRef, updateData);
+
+    const quote = { ...quoteData, id: docSnap.id } as any;
+
+    // Send confirmation emails if quote is accepted (signature step)
     if (status === "accepted" && signature) {
-      const quote = { ...quoteData, id: docSnap.id } as any;
-
       try {
-        // Send confirmation to client
         if (signature.email) {
           await resend.emails.send({
             from: "Dev4Ecom <contact@dev4com.com>",
@@ -226,7 +372,6 @@ export async function PATCH(
           });
         }
 
-        // Send notification to owner
         await resend.emails.send({
           from: "Dev4Ecom <contact@dev4com.com>",
           to: "contact@dev4com.com",
@@ -235,7 +380,35 @@ export async function PATCH(
         });
       } catch (emailError) {
         console.error("Error sending confirmation emails:", emailError);
-        // Don't fail the request if emails fail to send
+      }
+    }
+
+    // Send payment confirmation emails (payment step)
+    if (payment && !status) {
+      const clientEmail = quoteData.signature?.email;
+      const clientName = quoteData.signature?.name || quote.client?.name || 'Client';
+      const paidAmount = payment.amount;
+      const currency = payment.currency || 'EUR';
+      const isDeposit = quote.deposit > 0;
+
+      try {
+        if (clientEmail) {
+          await resend.emails.send({
+            from: "Dev4Ecom <contact@dev4com.com>",
+            to: clientEmail,
+            subject: `Confirmation de paiement - Devis ${quote.number}`,
+            html: generateClientPaymentEmail(quote, clientName, paidAmount, currency, isDeposit),
+          });
+        }
+
+        await resend.emails.send({
+          from: "Dev4Ecom <contact@dev4com.com>",
+          to: "contact@dev4com.com",
+          subject: `💰 Paiement reçu - Devis ${quote.number} - ${quote.client?.name || 'Client'}`,
+          html: generateOwnerPaymentEmail(quote, clientName, clientEmail || 'Non renseigné', paidAmount, currency, isDeposit),
+        });
+      } catch (emailError) {
+        console.error("Error sending payment confirmation emails:", emailError);
       }
     }
 

@@ -8,6 +8,13 @@ interface BillingEmailDialogProps {
   onEmailSent: () => void;
 }
 
+const getBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return process.env.NEXT_PUBLIC_BASE_URL || "https://devis.dev4com.com";
+};
+
 export function BillingEmailDialog({ invoice, onEmailSent }: BillingEmailDialogProps) {
   const currencySymbol = invoice.currency === "CHF" ? "CHF" : "€";
   const finalAmount = invoice.showTax
@@ -22,6 +29,7 @@ export function BillingEmailDialog({ invoice, onEmailSent }: BillingEmailDialogP
   })();
 
   const clientFirstName = invoice.client.name.split(" ")[0];
+  const validationUrl = `${getBaseUrl()}/validation/${invoice.id}?type=billing`;
 
   return (
     <BaseEmailDialog
@@ -35,6 +43,20 @@ export function BillingEmailDialog({ invoice, onEmailSent }: BillingEmailDialogP
 
 Veuillez trouver ci-joint la facture ${invoice.number} d'un montant de ${finalAmount} ${currencySymbol}${invoice.showTax ? " TTC" : ""}${dueDateStr ? `, payable avant le ${dueDateStr}` : ""}.
 
+Pour régler cette facture en ligne par carte bancaire, cliquez sur le bouton ci-dessous :
+
+[VALIDATION_BUTTON]
+
+Ce fut un plaisir de collaborer avec vous sur ce projet, merci pour votre confiance.
+
+Je reste disponible si vous avez la moindre question.
+
+Bien cordialement,
+${invoice.company.name}`,
+        defaultMessageWithoutPayment: `Bonjour${clientFirstName ? ` ${clientFirstName}` : ""},
+
+Veuillez trouver ci-joint la facture ${invoice.number} d'un montant de ${finalAmount} ${currencySymbol}${invoice.showTax ? " TTC" : ""}${dueDateStr ? `, payable avant le ${dueDateStr}` : ""}.
+
 Ce fut un plaisir de collaborer avec vous sur ce projet, merci pour votre confiance.
 
 Je reste disponible si vous avez la moindre question.
@@ -42,6 +64,7 @@ Je reste disponible si vous avez la moindre question.
 Bien cordialement,
 ${invoice.company.name}`,
       }}
+      validationUrl={validationUrl}
     />
   );
 }

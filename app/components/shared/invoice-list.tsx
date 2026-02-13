@@ -51,7 +51,7 @@ interface InvoiceListProps {
   onEdit: (invoice: Invoice) => void;
   onStatusUpdate: (
     id: string,
-    status: "draft" | "sent" | "accepted" | "rejected"
+    status: "draft" | "sent" | "accepted" | "rejected" | "paid"
   ) => void;
   onGenerateInvoice?: (invoice: BillingInvoice) => void;
   onDelete?: (ids: string[]) => void;
@@ -81,9 +81,9 @@ export function InvoiceList({
   // Stats
   const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
   const acceptedAmount = invoices
-    .filter((inv) => inv.status === "accepted")
+    .filter((inv) => inv.status === "accepted" || inv.status === "paid")
     .reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const acceptedCount = invoices.filter((inv) => inv.status === "accepted").length;
+  const acceptedCount = invoices.filter((inv) => inv.status === "accepted" || inv.status === "paid").length;
   const conversionRate = invoices.length > 0 ? ((acceptedCount / invoices.length) * 100).toFixed(0) : 0;
 
   // Filter and sort invoices
@@ -237,10 +237,10 @@ export function InvoiceList({
               ) : (
                 <BillingEmailDialog invoice={invoice as unknown as BillingInvoice} onEmailSent={() => {}} />
               )}
-              {type === "quote" && invoice.status === "accepted" && onGenerateInvoice && (
+              {type === "quote" && (invoice.status === "accepted" || invoice.status === "paid") && onGenerateInvoice && (
                 <GenerateInvoiceDialog quote={invoice} onGenerate={onGenerateInvoice} />
               )}
-              {type === "quote" && invoice.status !== "accepted" && (
+              {type === "quote" && invoice.status !== "accepted" && invoice.status !== "paid" && (
                 <DropdownMenuItem onClick={() => onStatusUpdate(invoice.id, "accepted")} className="text-green-600">
                   <Check className="w-4 h-4 mr-2" /> Accepté
                 </DropdownMenuItem>
@@ -306,6 +306,7 @@ export function InvoiceList({
             <SelectItem value="draft">Brouillon</SelectItem>
             <SelectItem value="sent">Envoyé</SelectItem>
             <SelectItem value="accepted">Accepté</SelectItem>
+            <SelectItem value="paid">Payé</SelectItem>
             <SelectItem value="rejected">Refusé</SelectItem>
           </SelectContent>
         </Select>

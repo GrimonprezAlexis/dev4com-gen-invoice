@@ -28,6 +28,10 @@ export async function POST(request: Request) {
     }] : undefined;
 
     // Create validation button HTML
+    const hasPayment = validationUrl?.includes('withPayment=true');
+    const buttonLabel = hasPayment
+      ? '✅ Accepter, signer et payer le devis'
+      : '✅ Accepter et signer le devis';
     const validationButtonHtml = validationUrl ? `
       <div style="text-align: center; margin: 30px 0;">
         <a href="${validationUrl}"
@@ -41,7 +45,7 @@ export async function POST(request: Request) {
                   font-size: 16px;
                   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
                   transition: all 0.2s ease;">
-          ✅ Accepter et signer le devis
+          ${buttonLabel}
         </a>
       </div>
     ` : '';

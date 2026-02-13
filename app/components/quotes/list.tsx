@@ -12,7 +12,7 @@ interface QuoteListProps {
   onEdit: (invoice: Invoice) => void;
   onStatusUpdate: (
     id: string,
-    status: "draft" | "sent" | "accepted" | "rejected"
+    status: "draft" | "sent" | "accepted" | "rejected" | "paid"
   ) => void;
   onGenerateInvoice?: (invoice: BillingInvoice) => void;
   onDelete?: (ids: string[]) => void;

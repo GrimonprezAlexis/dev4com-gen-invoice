@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Eye, Edit, Send, AlertCircle, Paperclip, X } from "lucide-react";
+import { Mail, Eye, Edit, Send, AlertCircle, Paperclip, X, CreditCard } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Invoice, BillingInvoice } from "@/app/types";
 import { useConfetti } from "@/app/hooks/use-confetti";
@@ -18,6 +19,7 @@ interface EmailTemplate {
   from: string;
   subject: string;
   defaultMessage: string;
+  defaultMessageWithoutPayment?: string;
 }
 
 interface EmailDialogProps {
@@ -32,11 +34,48 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate, valida
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState(emailTemplate.subject);
+  const [withPayment, setWithPayment] = useState(!!validationUrl);
   const [message, setMessage] = useState(emailTemplate.defaultMessage);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
   const fireConfetti = useConfetti();
+
+  const handleTogglePayment = (checked: boolean) => {
+    setWithPayment(checked);
+    // For quotes: message never changes (button always present, only URL changes)
+    // For billing: show/hide the payment button in the message
+    if (type === 'billing') {
+      if (checked) {
+        setMessage(emailTemplate.defaultMessage);
+      } else {
+        setMessage(
+          emailTemplate.defaultMessageWithoutPayment ||
+          emailTemplate.defaultMessage
+            .replace(/\n*Pour régler cette facture[^\n]*\n*/g, '\n')
+            .replace(/\n*\[VALIDATION_BUTTON\]\n*/g, '\n')
+        );
+      }
+    }
+  };
+
+  // Build the final validation URL based on toggle state
+  const getFinalValidationUrl = (): string | undefined => {
+    if (!validationUrl) return undefined;
+
+    if (type === 'quote') {
+      // Quotes: always send the URL. Append withPayment if Stripe is enabled.
+      return withPayment
+        ? `${validationUrl}?withPayment=true`
+        : validationUrl;
+    } else {
+      // Billing: only send URL if payment is enabled
+      if (!withPayment) return undefined;
+      return validationUrl.includes('?')
+        ? `${validationUrl}&withPayment=true`
+        : `${validationUrl}?withPayment=true`;
+    }
+  };
 
   const handleSendEmail = async () => {
     if (!email) {
@@ -48,7 +87,6 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate, valida
     setIsSending(true);
 
     try {
-      // Convert file to base64 if attachment exists
       let attachmentData = null;
       if (attachment) {
         const buffer = await attachment.arrayBuffer();
@@ -71,14 +109,13 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate, valida
           message,
           invoice: document,
           attachment: attachmentData,
-          validationUrl: validationUrl,
+          validationUrl: getFinalValidationUrl(),
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle detailed error from API
         const errorMessage = data?.error?.message || `Erreur lors de l'envoi de l'email (${response.status})`;
         setError(errorMessage);
         return;
@@ -94,6 +131,17 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate, valida
     } finally {
       setIsSending(false);
     }
+  };
+
+  const getToggleDescription = () => {
+    if (type === 'quote') {
+      return withPayment
+        ? "Le client pourra signer et payer en ligne"
+        : "Le client pourra signer en ligne (sans paiement)";
+    }
+    return withPayment
+      ? "Le client pourra payer en ligne"
+      : "Envoi sans lien de paiement";
   };
 
   return (
@@ -167,6 +215,30 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate, valida
                     className="dark:bg-slate-800 dark:border-slate-600 dark:text-white"
                   />
                 </div>
+
+                {/* Payment toggle */}
+                {validationUrl && (
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${withPayment ? 'bg-blue-100 dark:bg-blue-950' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                        <CreditCard className={`w-4 h-4 ${withPayment ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          Paiement en ligne (Stripe)
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {getToggleDescription()}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={withPayment}
+                      onCheckedChange={handleTogglePayment}
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="message">Message</Label>
                   <Textarea
@@ -228,12 +300,35 @@ export function EmailDialog({ document, type, onEmailSent, emailTemplate, valida
                       <span className="text-sm font-medium text-foreground">Objet:</span>
                       <span className="text-sm text-foreground">{subject}</span>
                     </div>
+                    {validationUrl && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-foreground">Paiement:</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${withPayment ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
+                          {withPayment ? 'Avec Stripe' : type === 'quote' ? 'Signature seule' : 'Sans paiement'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="prose max-w-none text-foreground">
                     <div className="space-y-4">
                       {message.split('\n\n').map((paragraph, i) => (
                         <div key={i} className="space-y-2">
                           {paragraph.split('\n').map((line, j) => {
+                            if (line.trim() === '[VALIDATION_BUTTON]') {
+                              // For quotes: always show button. For billing: only if withPayment
+                              const showButton = type === 'quote' || withPayment;
+                              if (!showButton) return null;
+                              return (
+                                <div key={j} className="text-center py-3">
+                                  <span className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium">
+                                    {type === 'quote'
+                                      ? (withPayment ? 'Accepter, signer et payer' : 'Accepter et signer le devis')
+                                      : 'Payer cette facture en ligne'
+                                    }
+                                  </span>
+                                </div>
+                              );
+                            }
                             if (line.startsWith('•')) {
                               return (
                                 <div key={j} className="flex items-start">

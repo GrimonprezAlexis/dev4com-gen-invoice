@@ -41,7 +41,7 @@ Cordialement,
 ${invoice.company.name}
 ${invoice.company.address}
 SIREN : ${invoice.company.siren}
-        `.trim()
+        `.trim(),
       }}
       validationUrl={validationUrl}
     />

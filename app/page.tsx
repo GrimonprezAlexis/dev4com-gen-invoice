@@ -172,7 +172,7 @@ function HomeContent() {
 
   const updateInvoiceStatus = async (
     invoiceId: string,
-    status: "draft" | "sent" | "accepted" | "rejected"
+    status: "draft" | "sent" | "accepted" | "rejected" | "paid"
   ) => {
     try {
       await updateInvoice(invoiceId, { status });
@@ -583,13 +583,13 @@ function HomeContent() {
                 if (existing) {
                   existing.totalAmount += inv.totalAmount;
                   existing.quotesCount += 1;
-                  if (inv.status === "accepted") existing.acceptedCount += 1;
+                  if (inv.status === "accepted" || inv.status === "paid") existing.acceptedCount += 1;
                 } else {
                   clientsMap.set(inv.client.siren, {
                     client: inv.client,
                     totalAmount: inv.totalAmount,
                     quotesCount: 1,
-                    acceptedCount: inv.status === "accepted" ? 1 : 0,
+                    acceptedCount: (inv.status === "accepted" || inv.status === "paid") ? 1 : 0,
                   });
                 }
               });

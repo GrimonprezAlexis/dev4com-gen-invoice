@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 
 interface StatusBadgeProps {
-  status: 'draft' | 'sent' | 'accepted' | 'rejected';
+  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'paid';
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
@@ -17,6 +17,8 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         return 'bg-green-500';
       case 'rejected':
         return 'bg-red-500';
+      case 'paid':
+        return 'bg-emerald-600';
       default:
         return 'bg-gray-500';
     }
@@ -32,6 +34,8 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         return 'Accepté';
       case 'rejected':
         return 'Refusé';
+      case 'paid':
+        return 'Payé';
       default:
         return status;
     }

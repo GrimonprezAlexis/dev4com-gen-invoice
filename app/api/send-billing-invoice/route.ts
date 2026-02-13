@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
-    const { email, subject, message, attachment } = await request.json();
+    const { email, subject, message, attachment, validationUrl } = await request.json();
 
     // Validate input
     if (!email || !subject || !message) {
@@ -27,11 +27,34 @@ export async function POST(request: Request) {
       content: Buffer.from(attachment.content, 'base64'),
     }] : undefined;
 
+    // Create payment button HTML
+    const validationButtonHtml = validationUrl ? `
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${validationUrl}"
+           style="display: inline-block;
+                  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                  color: white;
+                  padding: 16px 40px;
+                  text-decoration: none;
+                  border-radius: 8px;
+                  font-weight: 600;
+                  font-size: 16px;
+                  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+                  transition: all 0.2s ease;">
+          💳 Payer cette facture en ligne
+        </a>
+      </div>
+    ` : '';
+
+    // Replace placeholder with button
+    let htmlContent = message.replace(/\n/g, '<br>');
+    htmlContent = htmlContent.replace('[VALIDATION_BUTTON]', validationButtonHtml);
+
     const response = await resend.emails.send({
       from: "Dev4Ecom <contact@dev4com.com>",
       to: email,
       subject: subject,
-      html: message.replace(/\n/g, '<br>'),
+      html: htmlContent,
       attachments,
     });
 

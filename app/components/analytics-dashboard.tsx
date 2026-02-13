@@ -84,7 +84,7 @@ export function AnalyticsDashboard() {
   }, [user]);
 
   // Calculate key metrics
-  const acceptedInvoices = invoices.filter((inv) => inv.status === "accepted");
+  const acceptedInvoices = invoices.filter((inv) => inv.status === "accepted" || inv.status === "paid");
   const totalRevenue = acceptedInvoices.reduce(
     (sum, inv) => sum + inv.totalAmount,
     0
@@ -113,7 +113,7 @@ export function AnalyticsDashboard() {
           return invoices
             .filter(
               (inv) =>
-                inv.status === "accepted" &&
+                (inv.status === "accepted" || inv.status === "paid") &&
                 isWithinInterval(new Date(inv.date), {
                   start: month.start,
                   end: month.end,
@@ -134,7 +134,7 @@ export function AnalyticsDashboard() {
     datasets: [
       {
         data: [
-          invoices.filter((inv) => inv.status === "accepted").length,
+          invoices.filter((inv) => inv.status === "accepted" || inv.status === "paid").length,
           invoices.filter((inv) => inv.status === "sent").length,
           invoices.filter((inv) => inv.status === "rejected").length,
         ],
@@ -271,7 +271,7 @@ export function AnalyticsDashboard() {
                 );
                 const client = clientInvoices[0].client;
                 const totalAmount = clientInvoices
-                  .filter((inv) => inv.status === "accepted")
+                  .filter((inv) => inv.status === "accepted" || inv.status === "paid")
                   .reduce((sum, inv) => sum + inv.totalAmount, 0);
                 return {
                   client,
