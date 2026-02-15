@@ -57,6 +57,7 @@ export default function ValidationPage() {
   const [document, setDocument] = useState<Invoice | BillingInvoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -324,7 +325,7 @@ export default function ValidationPage() {
       setPaymentProcessing(false);
       setTimeout(() => fireConfetti(), 300);
     } catch (err) {
-      setError("Erreur lors de la confirmation du paiement.");
+      setActionError("Erreur lors de la confirmation du paiement.");
       setPaymentProcessing(false);
     }
   };
@@ -333,6 +334,7 @@ export default function ValidationPage() {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) return;
 
     setIsSigning(true);
+    setActionError(null);
     try {
       const response = await fetch(`/api/quotes/${id}`, {
         method: "PATCH",
@@ -365,7 +367,7 @@ export default function ValidationPage() {
         setTimeout(() => fireConfetti(), 300);
       }
     } catch (err) {
-      setError("Une erreur est survenue. Veuillez réessayer.");
+      setActionError("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setIsSigning(false);
     }
@@ -374,6 +376,7 @@ export default function ValidationPage() {
   const handlePayment = async () => {
     if (!document) return;
     setIsRedirecting(true);
+    setActionError(null);
 
     const paymentAmount = getPaymentAmount(document);
 
@@ -398,7 +401,7 @@ export default function ValidationPage() {
         window.location.href = url;
       }
     } catch (err) {
-      setError("Erreur lors de la redirection vers le paiement.");
+      setActionError("Erreur lors de la redirection vers le paiement.");
       setIsRedirecting(false);
     }
   };
@@ -980,6 +983,13 @@ export default function ValidationPage() {
                 </div>
               </div>
 
+              {actionError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <p>{actionError}</p>
+                </div>
+              )}
+
               <Button
                 onClick={handleSign}
                 disabled={
@@ -1154,6 +1164,13 @@ export default function ValidationPage() {
                   <span>Stripe Checkout</span>
                 </div>
               </div>
+
+              {actionError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                  <p>{actionError}</p>
+                </div>
+              )}
 
               <Button
                 onClick={handlePayment}
