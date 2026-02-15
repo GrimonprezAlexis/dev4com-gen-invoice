@@ -26,22 +26,18 @@ export function QuoteEmailDialog({ invoice, onEmailSent }: QuoteEmailDialogProps
       emailTemplate={{
         from: "contact@dev4com.com",
         subject: `Devis ${invoice.number} - ${invoice.company.name}`,
-        defaultMessage: `
-Bonjour,
+        defaultMessage: `Bonjour,
 
-Vous trouverez ci-joint notre devis ${invoice.number} détaillant notre proposition commerciale pour votre besoin.
+Vous trouverez ci-joint notre devis ${invoice.number} détaillant notre proposition commerciale.
 
-Pour accepter et signer électroniquement ce devis, cliquez sur le bouton ci-dessous :
+Pour accepter ce devis, cliquez sur le bouton ci-dessous :
 
 [VALIDATION_BUTTON]
 
 Je reste à votre disposition pour tout complément d'information.
 
 Cordialement,
-${invoice.company.name}
-${invoice.company.address}
-SIREN : ${invoice.company.siren}
-        `.trim(),
+${invoice.company.name}`.trim(),
       }}
       validationUrl={validationUrl}
     />

@@ -190,7 +190,10 @@ export function InvoiceList({
 
       {/* Status */}
       <div className="shrink-0">
-        <StatusBadge status={invoice.status} />
+        <StatusBadge
+          status={invoice.status}
+          onStatusChange={(newStatus) => onStatusUpdate(invoice.id, newStatus)}
+        />
       </div>
 
       {/* Actions */}

@@ -1,49 +1,76 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check } from "lucide-react";
+
+type Status = "draft" | "sent" | "accepted" | "rejected" | "paid";
+
+const STATUS_CONFIG: Record<Status, { color: string; label: string }> = {
+  draft: { color: "bg-gray-500", label: "Brouillon" },
+  sent: { color: "bg-blue-500", label: "Envoyé" },
+  accepted: { color: "bg-green-500", label: "Accepté" },
+  rejected: { color: "bg-red-500", label: "Refusé" },
+  paid: { color: "bg-emerald-600", label: "Payé" },
+};
 
 interface StatusBadgeProps {
-  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'paid';
+  status: Status;
+  onStatusChange?: (status: Status) => void;
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
-  const getStatusColor = () => {
-    switch (status) {
-      case 'draft':
-        return 'bg-gray-500';
-      case 'sent':
-        return 'bg-blue-500';
-      case 'accepted':
-        return 'bg-green-500';
-      case 'rejected':
-        return 'bg-red-500';
-      case 'paid':
-        return 'bg-emerald-600';
-      default:
-        return 'bg-gray-500';
-    }
-  };
+export function StatusBadge({ status, onStatusChange }: StatusBadgeProps) {
+  const [open, setOpen] = useState(false);
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
 
-  const getStatusText = () => {
-    switch (status) {
-      case 'draft':
-        return 'Brouillon';
-      case 'sent':
-        return 'Envoyé';
-      case 'accepted':
-        return 'Accepté';
-      case 'rejected':
-        return 'Refusé';
-      case 'paid':
-        return 'Payé';
-      default:
-        return status;
-    }
-  };
+  if (!onStatusChange) {
+    return (
+      <Badge className={`${config.color} text-white`}>
+        {config.label}
+      </Badge>
+    );
+  }
 
   return (
-    <Badge className={`${getStatusColor()} text-white`}>
-      {getStatusText()}
-    </Badge>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="cursor-pointer"
+        >
+          <Badge className={`${config.color} text-white hover:opacity-80 transition-opacity`}>
+            {config.label}
+          </Badge>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-40 p-1" align="end" sideOffset={6}>
+        <div className="space-y-0.5">
+          {(Object.entries(STATUS_CONFIG) as [Status, { color: string; label: string }][]).map(
+            ([key, { color, label }]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (key !== status) {
+                    onStatusChange(key);
+                  }
+                  setOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-sm hover:bg-accent transition-colors text-left"
+              >
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${color}`} />
+                <span className="flex-1">{label}</span>
+                {key === status && (
+                  <Check className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                )}
+              </button>
+            )
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
