@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+const isProduction = process.env.VERCEL_ENV === "production";
+
 function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
+  const key = isProduction
+    ? process.env.STRIPE_SECRET_KEY_LIVE
+    : process.env.STRIPE_SECRET_KEY_TEST;
+  if (!key) throw new Error(`STRIPE_SECRET_KEY_${isProduction ? "LIVE" : "TEST"} is not set`);
   return new Stripe(key, { apiVersion: "2026-01-28.clover" });
 }
 

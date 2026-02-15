@@ -3,9 +3,13 @@ import Stripe from "stripe";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 
+const isProduction = process.env.VERCEL_ENV === "production";
+
 function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
+  const key = isProduction
+    ? process.env.STRIPE_SECRET_KEY_LIVE
+    : process.env.STRIPE_SECRET_KEY_TEST;
+  if (!key) throw new Error(`STRIPE_SECRET_KEY_${isProduction ? "LIVE" : "TEST"} is not set`);
   return new Stripe(key, { apiVersion: "2026-01-28.clover" });
 }
 
@@ -17,9 +21,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
 
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = isProduction
+    ? process.env.STRIPE_WEBHOOK_SECRET_LIVE
+    : process.env.STRIPE_WEBHOOK_SECRET_TEST;
   if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET is not set");
+    console.error(`STRIPE_WEBHOOK_SECRET_${isProduction ? "LIVE" : "TEST"} is not set`);
     return NextResponse.json({ error: "Webhook secret not configured" }, { status: 500 });
   }
 
