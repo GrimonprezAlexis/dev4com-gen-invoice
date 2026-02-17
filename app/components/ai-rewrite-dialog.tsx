@@ -190,10 +190,10 @@ export function AIRewriteDialog({
                           <div className="flex gap-4 text-xs text-muted-foreground mt-1">
                             <span>Qté: {service.quantity}</span>
                             <span>
-                              Prix unitaire: {service.unitPrice.toLocaleString("fr-FR")}€
+                              Prix unitaire: {service.unitPrice.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
                             </span>
                             <span>
-                              Montant: {(service.quantity * service.unitPrice).toLocaleString("fr-FR")}€
+                              Montant: {(service.quantity * service.unitPrice).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€
                             </span>
                           </div>
                         </div>

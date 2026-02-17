@@ -49,7 +49,7 @@ const chartOptions: ChartOptions<"bar"> = {
       beginAtZero: true,
       ticks: {
         callback: function (value) {
-          return `${value.toLocaleString("fr-FR")} €`;
+          return `${value.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
         },
       },
     },
@@ -186,7 +186,7 @@ export function AnalyticsDashboard() {
             Chiffre d'affaires total
           </h3>
           <p className="text-3xl font-bold text-blue-600">
-            {totalRevenue.toLocaleString("fr-FR")} €
+            {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
           </p>
           <p className="text-sm text-muted-foreground">
             {acceptedInvoices.length} devis acceptés
@@ -196,7 +196,7 @@ export function AnalyticsDashboard() {
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-2">Valeur moyenne</h3>
           <p className="text-3xl font-bold text-green-600">
-            {averageInvoiceValue.toLocaleString("fr-FR")} €
+            {averageInvoiceValue.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
           </p>
           <p className="text-sm text-muted-foreground">par devis</p>
         </Card>
@@ -243,19 +243,19 @@ export function AnalyticsDashboard() {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Total facturé</span>
               <span className="font-semibold">
-                {totalBilled.toLocaleString("fr-FR")} €
+                {totalBilled.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Total encaissé</span>
               <span className="font-semibold text-green-600">
-                {totalPaid.toLocaleString("fr-FR")} €
+                {totalPaid.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Reste à encaisser</span>
               <span className="font-semibold text-orange-600">
-                {(totalBilled - totalPaid).toLocaleString("fr-FR")} €
+                {(totalBilled - totalPaid).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
               </span>
             </div>
           </div>
@@ -293,7 +293,7 @@ export function AnalyticsDashboard() {
                     </p>
                   </div>
                   <span className="font-semibold">
-                    {totalAmount.toLocaleString("fr-FR")} €
+                    {totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
                   </span>
                 </div>
               ))}

@@ -406,7 +406,7 @@ export function InvoiceForm({
                       {service.description || "Service sans description"}
                     </span>
                     <span className="text-xs font-medium shrink-0 tabular-nums">
-                      {service.amount.toLocaleString("fr-FR")} {currencySymbol}
+                      {service.amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}
                     </span>
                     <Button
                       type="button"
@@ -456,7 +456,7 @@ export function InvoiceForm({
                       </div>
                       <div className="col-span-6 sm:col-span-3">
                         <Label className="text-[10px] text-muted-foreground">Total</Label>
-                        <Input value={`${service.amount.toLocaleString("fr-FR")} ${currencySymbol}`} disabled className="h-7 text-xs font-medium" />
+                        <Input value={`${service.amount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}`} disabled className="h-7 text-xs font-medium" />
                       </div>
                     </div>
                   )}
@@ -472,7 +472,7 @@ export function InvoiceForm({
             {/* Summary lines */}
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Sous-total</span>
-              <span className="font-medium tabular-nums">{subtotal.toLocaleString("fr-FR")} {currencySymbol}</span>
+              <span className="font-medium tabular-nums">{subtotal.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}</span>
             </div>
             {discountValue > 0 && (
               <div className="flex items-center justify-between text-xs">
@@ -485,14 +485,14 @@ export function InvoiceForm({
             {showTax && (
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">TVA ({taxRate}%)</span>
-                <span className="tabular-nums">{((totalAmount * taxRate) / 100).toLocaleString("fr-FR")} {currencySymbol}</span>
+                <span className="tabular-nums">{((totalAmount * taxRate) / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}</span>
               </div>
             )}
             {/* Total */}
             <div className="flex items-center justify-between pt-1.5 border-t">
               <span className="text-sm font-semibold">{showTax ? "Total TTC" : "Total"}</span>
               <span className="text-sm font-bold text-green-600 dark:text-green-400 tabular-nums">
-                {(showTax ? totalTTC : totalAmount).toLocaleString("fr-FR")} {currencySymbol}
+                {(showTax ? totalTTC : totalAmount).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}
               </span>
             </div>
           </div>

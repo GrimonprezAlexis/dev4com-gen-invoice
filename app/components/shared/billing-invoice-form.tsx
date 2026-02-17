@@ -249,7 +249,7 @@ export function BillingInvoiceForm({
             <div className="text-sm">
               <span className="text-green-700 dark:text-green-300">Acompte {quote.deposit}%</span>
               <span className="text-green-600 dark:text-green-400 ml-2">
-                ({depositAmount.toLocaleString("fr-FR")} {currencySymbol})
+                ({depositAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol})
               </span>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
@@ -393,35 +393,35 @@ export function BillingInvoiceForm({
               <>
                 <div className="flex justify-between text-slate-400">
                   <span>Total devis</span>
-                  <span>{quote.totalAmount.toLocaleString("fr-FR")} {currencySymbol}</span>
+                  <span>{quote.totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}</span>
                 </div>
                 <div className="flex justify-between text-green-400">
                   <span>Acompte versé</span>
-                  <span>-{depositAmount.toLocaleString("fr-FR")} {currencySymbol}</span>
+                  <span>-{depositAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}</span>
                 </div>
                 <div className="border-t border-slate-700 my-2" />
               </>
             )}
             <div className="flex justify-between">
               <span className="text-slate-300">{deductDeposit ? "Solde HT" : "Montant HT"}</span>
-              <span>{baseAmount.toLocaleString("fr-FR")} {currencySymbol}</span>
+              <span>{baseAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}</span>
             </div>
             {additionalTotal > 0 && (
               <div className="flex justify-between text-amber-400">
                 <span>Services additionnels</span>
-                <span>+{additionalTotal.toLocaleString("fr-FR")} {currencySymbol}</span>
+                <span>+{additionalTotal.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}</span>
               </div>
             )}
             {showTax && (
               <div className="flex justify-between text-blue-400">
                 <span>TVA ({taxRate}%)</span>
-                <span>{(((baseAmount + additionalTotal) * taxRate) / 100).toLocaleString("fr-FR")} {currencySymbol}</span>
+                <span>{(((baseAmount + additionalTotal) * taxRate) / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}</span>
               </div>
             )}
             <div className="flex justify-between pt-2 border-t border-slate-700 text-base font-bold">
               <span>{showTax ? "Total TTC" : "Total"}</span>
               <span className="text-green-400">
-                {((baseAmount + additionalTotal) * (1 + (showTax ? taxRate : 0) / 100)).toLocaleString("fr-FR")} {currencySymbol}
+                {((baseAmount + additionalTotal) * (1 + (showTax ? taxRate : 0) / 100)).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbol}
               </span>
             </div>
           </div>

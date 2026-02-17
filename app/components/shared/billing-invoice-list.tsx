@@ -208,11 +208,11 @@ export function BillingInvoiceList({
       {/* Amount + Services additionnels */}
       <div className="text-right shrink-0">
         <p className="font-semibold text-sm">
-          {invoice.totalWithTax.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
+          {invoice.totalWithTax.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {invoice.currency === "CHF" ? "CHF" : "€"}
         </p>
         {(invoice.additionalServicesTotal ?? 0) > 0 ? (
           <p className="text-[10px] text-orange-600">
-            +{invoice.additionalServicesTotal!.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"} add.
+            +{invoice.additionalServicesTotal!.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {invoice.currency === "CHF" ? "CHF" : "€"} add.
           </p>
         ) : null}
       </div>
@@ -289,12 +289,12 @@ export function BillingInvoiceList({
       <div className="grid grid-cols-3 gap-2">
         <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
           <p className="text-xs text-muted-foreground">Total</p>
-          <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{totalAmount.toLocaleString("fr-FR")} €</p>
+          <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
           <p className="text-[10px] text-muted-foreground">{invoices.length} facture{invoices.length > 1 ? "s" : ""}</p>
         </div>
         <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
           <p className="text-xs text-muted-foreground">En attente</p>
-          <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{pendingAmount.toLocaleString("fr-FR")} €</p>
+          <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{pendingAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
           <p className="text-[10px] text-muted-foreground">{invoices.filter((i) => i.paymentStatus === "pending").length} facture{invoices.filter((i) => i.paymentStatus === "pending").length > 1 ? "s" : ""}</p>
         </div>
         <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">

@@ -18,8 +18,8 @@ const getBaseUrl = () => {
 export function BillingEmailDialog({ invoice, onEmailSent }: BillingEmailDialogProps) {
   const currencySymbol = invoice.currency === "CHF" ? "CHF" : "€";
   const finalAmount = invoice.showTax
-    ? invoice.totalWithTax.toLocaleString("fr-FR")
-    : invoice.totalAmount.toLocaleString("fr-FR");
+    ? invoice.totalWithTax.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : invoice.totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const dueDateStr = (() => {
     const d = (invoice.dueDate as any)?.toDate

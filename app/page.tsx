@@ -552,7 +552,7 @@ function HomeContent() {
             <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
               <p className="text-xs text-muted-foreground">CA Total</p>
               <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                {invoices.reduce((sum, inv) => sum + inv.totalAmount, 0).toLocaleString("fr-FR")} €
+                {invoices.reduce((sum, inv) => sum + inv.totalAmount, 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
               </p>
             </div>
             <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
@@ -665,7 +665,7 @@ function HomeContent() {
                 {/* Stats */}
                 <div className="text-right shrink-0">
                   <p className="font-semibold text-sm text-green-600 dark:text-green-400">
-                    {totalAmount.toLocaleString("fr-FR")} €
+                    {totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
                   </p>
                   <p className="text-[10px] text-muted-foreground">
                     {quotesCount} devis • {acceptedCount} accepté{acceptedCount > 1 ? "s" : ""}

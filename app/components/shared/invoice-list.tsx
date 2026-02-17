@@ -200,15 +200,15 @@ export function InvoiceList({
         {invoice.deposit > 0 ? (
           <>
             <p className="font-semibold text-sm">
-              {(invoice.totalAmount * invoice.deposit / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} {invoice.currency === "CHF" ? "CHF" : "€"}
+              {(invoice.totalAmount * invoice.deposit / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {invoice.currency === "CHF" ? "CHF" : "€"}
             </p>
             <p className="text-[10px] text-muted-foreground">
-              Total: {invoice.totalAmount.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
+              Total: {invoice.totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {invoice.currency === "CHF" ? "CHF" : "€"}
             </p>
           </>
         ) : (
           <p className="font-semibold text-sm">
-            {invoice.totalAmount.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
+            {invoice.totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {invoice.currency === "CHF" ? "CHF" : "€"}
           </p>
         )}
       </div>
@@ -298,12 +298,12 @@ export function InvoiceList({
       <div className="grid grid-cols-3 gap-2">
         <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
           <p className="text-xs text-muted-foreground">Total</p>
-          <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{totalAmount.toLocaleString("fr-FR")} €</p>
+          <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{totalAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
           <p className="text-[10px] text-muted-foreground">{invoices.length} devis</p>
         </div>
         <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
           <p className="text-xs text-muted-foreground">Acceptés</p>
-          <p className="text-lg font-bold text-green-600 dark:text-green-400">{acceptedAmount.toLocaleString("fr-FR")} €</p>
+          <p className="text-lg font-bold text-green-600 dark:text-green-400">{acceptedAmount.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
           <p className="text-[10px] text-muted-foreground">{acceptedCount} devis</p>
         </div>
         <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
