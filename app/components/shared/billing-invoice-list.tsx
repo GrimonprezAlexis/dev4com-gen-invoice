@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -111,6 +111,73 @@ export function BillingInvoiceList({
   const pendingAmount = invoices.filter((inv) => inv.paymentStatus === "pending").reduce((sum, inv) => sum + inv.totalWithTax, 0);
   const paidCount = invoices.filter((inv) => inv.paymentStatus === "paid").length;
   const recoveryRate = invoices.length > 0 ? ((paidCount / invoices.length) * 100).toFixed(0) : 0;
+
+  // Filter and sort invoices
+  const filteredInvoices = useMemo(() => {
+    let result = [...invoices];
+
+    // Search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(
+        (inv) =>
+          inv.number.toLowerCase().includes(searchLower) ||
+          inv.client.name.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      result = result.filter((inv) => inv.paymentStatus === statusFilter);
+    }
+
+    // Date range filter
+    if (dateRange?.from) {
+      const from = dateRange.from.getTime();
+      const to = dateRange.to ? dateRange.to.getTime() : from;
+      result = result.filter((inv) => {
+        const d = new Date(inv.date).getTime();
+        return d >= from && d <= to + 86400000;
+      });
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case "date":
+          comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+          break;
+        case "amount":
+          comparison = b.totalWithTax - a.totalWithTax;
+          break;
+        case "dueDate":
+          comparison = new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+          break;
+      }
+      return sortOrder === "asc" ? -comparison : comparison;
+    });
+
+    return result;
+  }, [invoices, search, statusFilter, dateRange, sortBy, sortOrder]);
+
+  // Group invoices by month when sorted by date
+  const groupedByMonth = useMemo(() => {
+    if (sortBy !== "date") return null;
+    const groups: { key: string; label: string; invoices: BillingInvoice[] }[] = [];
+    let currentKey = "";
+    for (const inv of filteredInvoices) {
+      const d = new Date(inv.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+      if (key !== currentKey) {
+        currentKey = key;
+        const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+        groups.push({ key, label: label.charAt(0).toUpperCase() + label.slice(1), invoices: [] });
+      }
+      groups[groups.length - 1].invoices.push(inv);
+    }
+    return groups;
+  }, [filteredInvoices, sortBy]);
 
   const renderCompactCard = (invoice: BillingInvoice) => (
     <div
@@ -273,9 +340,26 @@ export function BillingInvoiceList({
       </div>
 
       {/* List */}
-      <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" : "space-y-2"}>
-        {invoices.map(renderCompactCard)}
-      </div>
+      {groupedByMonth ? (
+        <div className="space-y-1">
+          {groupedByMonth.map((group) => (
+            <div key={group.key}>
+              <div className="flex items-center gap-3 py-2 px-1">
+                <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">{group.label}</span>
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[10px] text-muted-foreground/60 tabular-nums">{group.invoices.length}</span>
+              </div>
+              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" : "space-y-2"}>
+                {group.invoices.map(renderCompactCard)}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" : "space-y-2"}>
+          {filteredInvoices.map(renderCompactCard)}
+        </div>
+      )}
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-sm">

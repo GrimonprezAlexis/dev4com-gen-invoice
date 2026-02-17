@@ -17,8 +17,8 @@ function getButtonLabel(
 ): string {
   if (documentType === "quote") {
     return withPayment
-      ? "Accepter, signer et payer"
-      : "Accepter et signer";
+      ? "Accepter et payer"
+      : "Accepter";
   }
   return "R\u00e9gler cette facture";
 }
@@ -138,20 +138,22 @@ body, table, td, p, a { font-family: Segoe UI, Helvetica, Arial, sans-serif !imp
 <!-- Header -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
-<td style="padding: 32px 40px 24px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<td style="padding: 32px 40px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
-${companyLogo ? `<td valign="middle" width="48" style="vertical-align: middle; padding-right: 14px;">
-<img src="${companyLogo}" width="36" height="36" alt="${companyName || ''}" style="display: block; width: 36px; height: 36px; object-fit: contain; border-radius: 4px;" />
+${companyLogo ? `<td valign="middle" style="vertical-align: middle; padding-right: 12px;">
+<img src="${companyLogo}" width="40" height="40" alt="${companyName || ''}" style="display: block; width: 40px; height: 40px; object-fit: contain; border-radius: 6px;" />
 </td>` : ""}
 <td valign="middle" style="vertical-align: middle;">
-<p style="margin: 0; font-family: Georgia, 'Times New Roman', Times, serif; font-size: 19px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">${companyName || ""}</p>
-</td>
-<td valign="middle" align="right" style="vertical-align: middle; text-align: right;">
-<span style="display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase; background-color: #f5f4f0; padding: 5px 12px;">${refLabel}</span>
+<p style="margin: 0; font-family: Georgia, 'Times New Roman', Times, serif; font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">${companyName || ""}</p>
 </td>
 </tr>
 </table>
+</td>
+</tr>
+<tr>
+<td style="padding: 10px 40px 20px;">
+<span style="display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase; background-color: #f5f4f0; padding: 5px 12px; border-radius: 3px;">${refLabel}</span>
 </td>
 </tr>
 <tr>
@@ -202,7 +204,8 @@ ${
 <tr>
 <td style="padding: 28px 40px;" align="center">
 <p style="margin: 0 0 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; color: #94a3b8; line-height: 1.5;">${footerLine}</p>
-<p style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #cbd5e1;">Envoy\u00e9 via <span style="color: #94a3b8;">Dev4Ecom</span></p>
+<p style="margin: 0 0 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; color: #cbd5e1;">Envoy\u00e9 via <span style="color: #94a3b8;">Dev4Ecom</span></p>
+<p style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 10px; color: #cbd5e1;">Ceci est un message automatique, merci de ne pas y r\u00e9pondre.</p>
 </td>
 </tr>
 

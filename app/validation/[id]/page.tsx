@@ -333,6 +333,18 @@ export default function ValidationPage() {
   const handleSign = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) return;
 
+    // Already signed — just navigate forward without re-calling the API
+    const quoteStatus = (document as Invoice)?.status;
+    if (quoteStatus === "accepted" || quoteStatus === "paid") {
+      if (hasPaymentStep) {
+        setStep(paymentStep);
+      } else {
+        setStep(confirmationStep);
+        setTimeout(() => fireConfetti(), 300);
+      }
+      return;
+    }
+
     setIsSigning(true);
     setActionError(null);
     try {
@@ -554,6 +566,8 @@ export default function ValidationPage() {
               const isCompleted = step > s.number;
               const isActive = step === s.number;
               const Icon = s.icon;
+              // Allow clicking completed steps to go back, but NOT from confirmation (payment done)
+              const canNavigate = isCompleted && step !== confirmationStep;
 
               return (
                 <div
@@ -561,21 +575,24 @@ export default function ValidationPage() {
                   className="flex items-center flex-1 last:flex-none"
                 >
                   <div className="flex flex-col items-center">
-                    <div
+                    <button
+                      type="button"
+                      disabled={!canNavigate}
+                      onClick={() => canNavigate && setStep(s.number)}
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
                         isCompleted
                           ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/25"
                           : isActive
                           ? "bg-blue-600 text-white shadow-md shadow-blue-600/25"
                           : "bg-slate-100 text-slate-400 border-2 border-slate-200"
-                      }`}
+                      } ${canNavigate ? "cursor-pointer hover:scale-110 hover:ring-2 hover:ring-offset-2 hover:ring-emerald-400" : ""}`}
                     >
                       {isCompleted ? (
                         <Check className="w-5 h-5" />
                       ) : (
                         <Icon className="w-4.5 h-4.5" />
                       )}
-                    </div>
+                    </button>
                     <span
                       className={`mt-2 text-xs font-medium hidden sm:block transition-colors ${
                         isCompleted
@@ -970,18 +987,6 @@ export default function ValidationPage() {
                   </p>
                 </div>
               )}
-
-              {/* Quote summary */}
-              <div className="bg-blue-50 rounded-xl p-4 mb-6 border border-blue-100">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-blue-700">
-                    Devis n° {docNumber}
-                  </span>
-                  <span className="text-lg font-bold text-blue-700">
-                    {formatCurrency((document as Invoice).totalAmount)}
-                  </span>
-                </div>
-              </div>
 
               {actionError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm flex items-center gap-3">

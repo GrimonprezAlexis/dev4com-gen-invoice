@@ -125,6 +125,24 @@ export function InvoiceList({
     return result;
   }, [invoices, search, statusFilter, sortBy, sortOrder]);
 
+  // Group invoices by month when sorted by date
+  const groupedByMonth = useMemo(() => {
+    if (sortBy !== "date") return null;
+    const groups: { key: string; label: string; invoices: Invoice[] }[] = [];
+    let currentKey = "";
+    for (const inv of filteredInvoices) {
+      const d = new Date(inv.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+      if (key !== currentKey) {
+        currentKey = key;
+        const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+        groups.push({ key, label: label.charAt(0).toUpperCase() + label.slice(1), invoices: [] });
+      }
+      groups[groups.length - 1].invoices.push(inv);
+    }
+    return groups;
+  }, [filteredInvoices, sortBy]);
+
   const handleToggleSelection = (id: string) => {
     setSelectedInvoices((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
@@ -361,9 +379,26 @@ export function InvoiceList({
       </div>
 
       {/* List */}
-      <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" : "space-y-2"}>
-        {filteredInvoices.map(renderCompactCard)}
-      </div>
+      {groupedByMonth ? (
+        <div className="space-y-1">
+          {groupedByMonth.map((group) => (
+            <div key={group.key}>
+              <div className="flex items-center gap-3 py-2 px-1">
+                <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">{group.label}</span>
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[10px] text-muted-foreground/60 tabular-nums">{group.invoices.length}</span>
+              </div>
+              <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" : "space-y-2"}>
+                {group.invoices.map(renderCompactCard)}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" : "space-y-2"}>
+          {filteredInvoices.map(renderCompactCard)}
+        </div>
+      )}
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-sm">

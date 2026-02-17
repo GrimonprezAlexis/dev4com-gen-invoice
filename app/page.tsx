@@ -57,7 +57,9 @@ import {
   getBillingInvoices,
   deleteBillingInvoice,
   updateInvoice,
+  getCompany,
 } from "@/lib/firebase";
+import { Company } from "./types";
 
 function HomeContent() {
   const { user, logout } = useAuth();
@@ -75,7 +77,8 @@ function HomeContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
-  const [clientSortBy, setClientSortBy] = useState<"name" | "amount" | "quotes">("amount");
+  const [clientSortBy, setClientSortBy] = useState<"date" | "name" | "amount" | "quotes">("date");
+  const [companyInfo, setCompanyInfo] = useState<Company | null>(null);
   const fireConfetti = useConfetti();
 
   useEffect(() => {
@@ -103,8 +106,18 @@ function HomeContent() {
       }
     };
 
+    const loadCompany = async () => {
+      try {
+        const data = await getCompany(user.uid);
+        if (data) setCompanyInfo(data);
+      } catch (error) {
+        console.error("Error loading company:", error);
+      }
+    };
+
     loadInvoices();
     loadBillingInvoices();
+    loadCompany();
   }, [user]);
 
   const handleSaveInvoice = async (invoice: Invoice) => {
@@ -239,9 +252,18 @@ function HomeContent() {
     <main className="container mx-auto p-2 sm:p-4 space-y-4">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-0 bg-background z-50 pb-2 border-b">
         <div className="flex items-center justify-between w-full sm:w-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-            Dev4Ecom
-          </h1>
+          <div className="flex items-center gap-2.5">
+            {companyInfo?.logo && (
+              <img
+                src={companyInfo.logo}
+                alt={companyInfo.name || "Logo"}
+                className="h-8 w-8 rounded-md object-contain border bg-white"
+              />
+            )}
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+              {companyInfo?.name || "Dev4Ecom"}
+            </h1>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -554,12 +576,13 @@ function HomeContent() {
                 className="pl-8 h-8 text-sm"
               />
             </div>
-            <Select value={clientSortBy} onValueChange={(v: "name" | "amount" | "quotes") => setClientSortBy(v)}>
+            <Select value={clientSortBy} onValueChange={(v: "date" | "name" | "amount" | "quotes") => setClientSortBy(v)}>
               <SelectTrigger className="w-[110px] h-8 text-xs">
                 <ArrowUpDown className="w-3 h-3 mr-1" />
                 <SelectValue placeholder="Trier" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="date">Date</SelectItem>
                 <SelectItem value="amount">Montant</SelectItem>
                 <SelectItem value="name">Nom</SelectItem>
                 <SelectItem value="quotes">Nb devis</SelectItem>
@@ -568,88 +591,129 @@ function HomeContent() {
           </div>
 
           {/* Compact client list */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-            {(() => {
-              // Build client list with aggregated data
-              const clientsMap = new Map<string, {
-                client: typeof invoices[0]["client"];
-                totalAmount: number;
-                quotesCount: number;
-                acceptedCount: number;
-              }>();
+          {(() => {
+            // Build client list with aggregated data
+            const clientsMap = new Map<string, {
+              client: typeof invoices[0]["client"];
+              totalAmount: number;
+              quotesCount: number;
+              acceptedCount: number;
+              latestDate: string;
+            }>();
 
-              invoices.forEach((inv) => {
-                const existing = clientsMap.get(inv.client.siren);
-                if (existing) {
-                  existing.totalAmount += inv.totalAmount;
-                  existing.quotesCount += 1;
-                  if (inv.status === "accepted" || inv.status === "paid") existing.acceptedCount += 1;
-                } else {
-                  clientsMap.set(inv.client.siren, {
-                    client: inv.client,
-                    totalAmount: inv.totalAmount,
-                    quotesCount: 1,
-                    acceptedCount: (inv.status === "accepted" || inv.status === "paid") ? 1 : 0,
-                  });
-                }
-              });
-
-              let clients = Array.from(clientsMap.values());
-
-              // Filter by search
-              if (clientSearch) {
-                const searchLower = clientSearch.toLowerCase();
-                clients = clients.filter((c) =>
-                  c.client.name.toLowerCase().includes(searchLower) ||
-                  c.client.siren?.toLowerCase().includes(searchLower)
-                );
+            invoices.forEach((inv) => {
+              const existing = clientsMap.get(inv.client.siren);
+              if (existing) {
+                existing.totalAmount += inv.totalAmount;
+                existing.quotesCount += 1;
+                if (inv.status === "accepted" || inv.status === "paid") existing.acceptedCount += 1;
+                if (inv.date > existing.latestDate) existing.latestDate = inv.date;
+              } else {
+                clientsMap.set(inv.client.siren, {
+                  client: inv.client,
+                  totalAmount: inv.totalAmount,
+                  quotesCount: 1,
+                  acceptedCount: (inv.status === "accepted" || inv.status === "paid") ? 1 : 0,
+                  latestDate: inv.date,
+                });
               }
+            });
 
-              // Sort
-              clients.sort((a, b) => {
-                switch (clientSortBy) {
-                  case "name":
-                    return a.client.name.localeCompare(b.client.name);
-                  case "amount":
-                    return b.totalAmount - a.totalAmount;
-                  case "quotes":
-                    return b.quotesCount - a.quotesCount;
-                  default:
-                    return 0;
-                }
-              });
+            let clients = Array.from(clientsMap.values());
 
-              return clients.map(({ client, totalAmount, quotesCount, acceptedCount }) => (
-                <div
-                  key={client.siren}
-                  className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-sm transition-all"
-                >
-                  {/* Avatar */}
-                  <div className="shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
-                    {client?.name?.charAt(0)?.toUpperCase() || "?"}
-                  </div>
+            // Filter by search
+            if (clientSearch) {
+              const searchLower = clientSearch.toLowerCase();
+              clients = clients.filter((c) =>
+                c.client.name.toLowerCase().includes(searchLower) ||
+                c.client.siren?.toLowerCase().includes(searchLower)
+              );
+            }
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{client?.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {client?.address || `SIREN: ${client?.siren}`}
-                    </p>
-                  </div>
+            // Sort
+            clients.sort((a, b) => {
+              switch (clientSortBy) {
+                case "date":
+                  return new Date(b.latestDate).getTime() - new Date(a.latestDate).getTime();
+                case "name":
+                  return a.client.name.localeCompare(b.client.name);
+                case "amount":
+                  return b.totalAmount - a.totalAmount;
+                case "quotes":
+                  return b.quotesCount - a.quotesCount;
+                default:
+                  return 0;
+              }
+            });
 
-                  {/* Stats */}
-                  <div className="text-right shrink-0">
-                    <p className="font-semibold text-sm text-green-600 dark:text-green-400">
-                      {totalAmount.toLocaleString("fr-FR")} €
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {quotesCount} devis • {acceptedCount} accepté{acceptedCount > 1 ? "s" : ""}
-                    </p>
-                  </div>
+            const renderClientCard = ({ client, totalAmount, quotesCount, acceptedCount }: typeof clients[0]) => (
+              <div
+                key={client.siren}
+                className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-sm transition-all"
+              >
+                {/* Avatar */}
+                <div className="shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm">
+                  {client?.name?.charAt(0)?.toUpperCase() || "?"}
                 </div>
-              ));
-            })()}
-          </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{client?.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {client?.address || `SIREN: ${client?.siren}`}
+                  </p>
+                </div>
+
+                {/* Stats */}
+                <div className="text-right shrink-0">
+                  <p className="font-semibold text-sm text-green-600 dark:text-green-400">
+                    {totalAmount.toLocaleString("fr-FR")} €
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {quotesCount} devis • {acceptedCount} accepté{acceptedCount > 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+            );
+
+            // Group by month when sorted by date
+            if (clientSortBy === "date") {
+              const groups: { key: string; label: string; items: typeof clients }[] = [];
+              let currentKey = "";
+              for (const c of clients) {
+                const d = new Date(c.latestDate);
+                const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+                if (key !== currentKey) {
+                  currentKey = key;
+                  const label = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+                  groups.push({ key, label: label.charAt(0).toUpperCase() + label.slice(1), items: [] });
+                }
+                groups[groups.length - 1].items.push(c);
+              }
+              return (
+                <div className="space-y-1">
+                  {groups.map((group) => (
+                    <div key={group.key}>
+                      <div className="flex items-center gap-3 py-2 px-1">
+                        <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">{group.label}</span>
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-[10px] text-muted-foreground/60 tabular-nums">{group.items.length}</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                        {group.items.map(renderClientCard)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                {clients.map(renderClientCard)}
+              </div>
+            );
+          })()}
 
           {invoices.length === 0 && (
             <div className="text-center py-8 text-muted-foreground text-sm">

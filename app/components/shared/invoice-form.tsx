@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Plus, Trash2, Wand2, ChevronDown, ChevronUp, CreditCard, GripVertical } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -156,6 +157,17 @@ export function InvoiceForm({
   }, [services, discountType, discountValue]);
 
   const onSubmit = (data: Invoice) => {
+    // Guard: validate required fields
+    if (!data.client?.name?.trim()) {
+      toast.error("Le nom du client est requis");
+      return;
+    }
+    if (!services.length || services.every((s) => !s.description.trim() && s.amount === 0)) {
+      toast.error("Ajoutez au moins un service");
+      return;
+    }
+
+    const deposit = isNaN(Number(data.deposit)) ? 50 : Number(data.deposit);
     const year = new Date().getFullYear();
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     const invoice: Invoice = {
@@ -168,7 +180,10 @@ export function InvoiceForm({
       subtotal,
       discount: { type: discountType, value: discountValue },
       totalAmount,
-      remainingBalance: totalAmount * (1 - data.deposit / 100),
+      deposit,
+      remainingBalance: totalAmount * (1 - deposit / 100),
+      deliveryTime: data.deliveryTime || "",
+      paymentTerms: data.paymentTerms || "",
       createdAt: initialData?.createdAt || new Date(),
       company: companyInfo || data.company,
       showTax,
@@ -451,36 +466,41 @@ export function InvoiceForm({
           </div>
         </div>
 
-        {/* Summary + Discount compact */}
-        <div className="bg-slate-900 dark:bg-slate-950 rounded-lg p-3 text-white">
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm mb-2">
-            <div className="flex justify-between gap-2">
-              <span className="text-slate-400">Sous-total</span>
-              <span>{subtotal.toLocaleString("fr-FR")} {currencySymbol}</span>
+        {/* Summary + Discount */}
+        <div className="border rounded-lg">
+          <div className="p-2 space-y-1.5">
+            {/* Summary lines */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Sous-total</span>
+              <span className="font-medium tabular-nums">{subtotal.toLocaleString("fr-FR")} {currencySymbol}</span>
             </div>
             {discountValue > 0 && (
-              <div className="flex justify-between gap-2 text-red-400">
-                <span>Remise</span>
-                <span>-{discountType === "percentage" ? `${discountValue}%` : `${discountValue} ${currencySymbol}`}</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-red-500 dark:text-red-400">Remise</span>
+                <span className="text-red-500 dark:text-red-400 tabular-nums">
+                  -{discountType === "percentage" ? `${discountValue}%` : `${discountValue} ${currencySymbol}`}
+                </span>
               </div>
             )}
             {showTax && (
-              <div className="flex justify-between gap-2 text-blue-400">
-                <span>TVA ({taxRate}%)</span>
-                <span>{((totalAmount * taxRate) / 100).toLocaleString("fr-FR")} {currencySymbol}</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">TVA ({taxRate}%)</span>
+                <span className="tabular-nums">{((totalAmount * taxRate) / 100).toLocaleString("fr-FR")} {currencySymbol}</span>
               </div>
             )}
+            {/* Total */}
+            <div className="flex items-center justify-between pt-1.5 border-t">
+              <span className="text-sm font-semibold">{showTax ? "Total TTC" : "Total"}</span>
+              <span className="text-sm font-bold text-green-600 dark:text-green-400 tabular-nums">
+                {(showTax ? totalTTC : totalAmount).toLocaleString("fr-FR")} {currencySymbol}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center justify-between pt-2 border-t border-slate-700">
-            <span className="font-bold">{showTax ? "Total TTC" : "Total"}</span>
-            <span className="text-lg font-bold text-green-400">
-              {(showTax ? totalTTC : totalAmount).toLocaleString("fr-FR")} {currencySymbol}
-            </span>
-          </div>
-          {/* Discount controls inline */}
-          <div className="flex gap-2 mt-2 pt-2 border-t border-slate-700">
+          {/* Discount controls */}
+          <div className="flex items-center gap-2 px-2 py-1.5 border-t bg-muted/30">
+            <span className="text-[10px] text-muted-foreground shrink-0">Remise</span>
             <Select value={discountType} onValueChange={(v: "percentage" | "fixed") => setDiscountType(v)}>
-              <SelectTrigger className="h-7 text-xs bg-slate-800 border-slate-700 w-28">
+              <SelectTrigger className="h-7 text-xs w-20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -492,10 +512,9 @@ export function InvoiceForm({
               type="number"
               value={discountValue}
               onChange={(e) => setDiscountValue(Number(e.target.value))}
-              placeholder="Remise"
-              className="h-7 text-xs bg-slate-800 border-slate-700 w-20"
+              placeholder="0"
+              className="h-7 text-xs w-20"
             />
-            <span className="text-xs text-slate-500 self-center">Remise</span>
           </div>
         </div>
 

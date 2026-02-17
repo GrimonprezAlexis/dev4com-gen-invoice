@@ -112,10 +112,15 @@ export function AIRewriteDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent resizable className="w-[95vw] sm:w-full sm:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wand2 className="h-5 w-5" />
-            Rédaction IA - Contenu du devis
-          </DialogTitle>
+          <div className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5" />
+              Rédaction IA - Contenu du devis
+            </DialogTitle>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+              Llama 3.3 70B · Groq
+            </span>
+          </div>
           <DialogDescription>
             {step === "draft"
               ? "Saisissez votre contenu brouillon et laissez l'IA le transformer en texte professionnel"

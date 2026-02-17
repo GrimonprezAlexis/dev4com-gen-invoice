@@ -181,6 +181,7 @@ const styles = StyleSheet.create({
   signatureName: {
     fontSize: 18,
     color: "#1e3a5f",
+    fontFamily: "Courier",
     fontStyle: "italic",
     marginBottom: 4,
   },

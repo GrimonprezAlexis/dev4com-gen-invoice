@@ -117,7 +117,7 @@ export const getCompany = async (userId: string): Promise<Company | null> => {
 export const saveInvoice = async (invoice: Invoice, userId: string) => {
   try {
     const docRef = doc(db, "invoices", invoice.id);
-    await setDoc(docRef, {
+    await setDoc(docRef, cleanUndefined({
       ...invoice,
       userId,
       currency: invoice.currency || "EUR",
@@ -126,7 +126,7 @@ export const saveInvoice = async (invoice: Invoice, userId: string) => {
       createdAt: new Date(),
       date: new Date(invoice.date),
       validUntil: new Date(invoice.validUntil),
-    });
+    }));
   } catch (error) {
     console.error("Error saving invoice:", error);
     throw error;
