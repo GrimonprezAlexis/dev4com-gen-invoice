@@ -431,6 +431,17 @@ export const FrenchPDFDocument = ({ document, type, qrCodeDataUrl }: FrenchPDFDo
 
               return (
                 <>
+                  {/* Discount - shown before Total devis for clarity */}
+                  {billing.discount?.value > 0 && (
+                    <View style={styles.totalRow}>
+                      <Text>Remise :</Text>
+                      <Text>
+                        {billing.discount?.type === "percentage"
+                          ? `${billing.discount.value}%`
+                          : `${formatFrenchNumber(billing.discount.value)} ${currencySymbol}`}
+                      </Text>
+                    </View>
+                  )}
                   {/* Total devis */}
                   {hasDeposit && (
                     <View style={styles.totalRow}>
@@ -464,17 +475,6 @@ export const FrenchPDFDocument = ({ document, type, qrCodeDataUrl }: FrenchPDFDo
                       <Text style={{ color: "#d97706" }}>Services additionnels :</Text>
                       <Text style={{ color: "#d97706" }}>
                         +{formatFrenchNumber(billing.additionalServicesTotal || 0)} {currencySymbol}
-                      </Text>
-                    </View>
-                  )}
-                  {/* Discount */}
-                  {billing.discount?.value > 0 && (
-                    <View style={styles.totalRow}>
-                      <Text>Remise :</Text>
-                      <Text>
-                        {billing.discount?.type === "percentage"
-                          ? `${billing.discount.value}%`
-                          : `${formatFrenchNumber(billing.discount.value)} ${currencySymbol}`}
                       </Text>
                     </View>
                   )}

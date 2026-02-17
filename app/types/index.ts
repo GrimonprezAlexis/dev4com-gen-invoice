@@ -57,7 +57,7 @@ export interface Invoice {
     name: string;
     signedAt?: Date;
   };
-  status: "draft" | "sent" | "accepted" | "rejected" | "paid";
+  status: "draft" | "pending" | "sent" | "accepted" | "rejected" | "paid";
   createdAt: Date;
   currency?: string;
   showTax?: boolean;

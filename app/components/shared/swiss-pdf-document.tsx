@@ -506,6 +506,15 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
 
                 return (
                   <>
+                    {/* Discount - shown before Total devis for clarity */}
+                    {discountAmount > 0 && (
+                      <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>
+                          Remise {doc.discount.type === "percentage" ? `(${doc.discount.value}%)` : ""}
+                        </Text>
+                        <Text style={styles.summaryValue}>-{currencySymbol} {formatSwissNumber(discountAmount)}</Text>
+                      </View>
+                    )}
                     {/* Total devis */}
                     {hasDeposit && (
                       <View style={styles.summaryRow}>
@@ -556,15 +565,6 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
                         <Text style={[styles.summaryValue, { color: "#d97706" }]}>
                           +{currencySymbol} {formatSwissNumber(additionalServicesTotal)}
                         </Text>
-                      </View>
-                    )}
-                    {/* Discount */}
-                    {discountAmount > 0 && (
-                      <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>
-                          Remise {doc.discount.type === "percentage" ? `(${doc.discount.value}%)` : ""}
-                        </Text>
-                        <Text style={styles.summaryValue}>-{currencySymbol} {formatSwissNumber(discountAmount)}</Text>
                       </View>
                     )}
                     {/* TVA if applicable */}

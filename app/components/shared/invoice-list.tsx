@@ -51,7 +51,7 @@ interface InvoiceListProps {
   onEdit: (invoice: Invoice) => void;
   onStatusUpdate: (
     id: string,
-    status: "draft" | "sent" | "accepted" | "rejected" | "paid"
+    status: "draft" | "pending" | "sent" | "accepted" | "rejected" | "paid"
   ) => void;
   onGenerateInvoice?: (invoice: BillingInvoice) => void;
   onDelete?: (ids: string[]) => void;
@@ -178,12 +178,18 @@ export function InvoiceList({
 
       {/* Amount */}
       <div className="text-right shrink-0">
-        <p className="font-semibold text-sm">
-          {invoice.totalAmount.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
-        </p>
-        {invoice.discount?.value > 0 && (
-          <p className="text-[10px] text-green-600">
-            -{invoice.discount.type === "percentage" ? `${invoice.discount.value}%` : `${invoice.discount.value}€`}
+        {invoice.deposit > 0 ? (
+          <>
+            <p className="font-semibold text-sm">
+              {(invoice.totalAmount * invoice.deposit / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} {invoice.currency === "CHF" ? "CHF" : "€"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              Total: {invoice.totalAmount.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
+            </p>
+          </>
+        ) : (
+          <p className="font-semibold text-sm">
+            {invoice.totalAmount.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
           </p>
         )}
       </div>
@@ -306,9 +312,10 @@ export function InvoiceList({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tous</SelectItem>
-            <SelectItem value="draft">Brouillon</SelectItem>
-            <SelectItem value="sent">Envoyé</SelectItem>
             <SelectItem value="accepted">Accepté</SelectItem>
+            <SelectItem value="draft">Brouillon</SelectItem>
+            <SelectItem value="pending">En attente</SelectItem>
+            <SelectItem value="sent">Envoyé</SelectItem>
             <SelectItem value="paid">Payé</SelectItem>
             <SelectItem value="rejected">Refusé</SelectItem>
           </SelectContent>

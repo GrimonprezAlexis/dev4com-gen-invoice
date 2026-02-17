@@ -34,6 +34,7 @@ import {
   DialogHeader,
 } from "@/components/ui/dialog";
 import { BillingInvoice } from "@/app/types";
+import { StatusBadge, BillingStatus } from "../status-badge";
 import { DateRangePicker } from "../date-range-picker";
 import { toast } from "sonner";
 import { BillingEmailDialog } from "../billing/email-dialog";
@@ -136,29 +137,36 @@ export function BillingInvoiceList({
         <p className="text-xs text-muted-foreground truncate">{invoice.client.name}</p>
       </div>
 
-      {/* Amount + TVA */}
+      {/* Amount + Services additionnels */}
       <div className="text-right shrink-0">
         <p className="font-semibold text-sm">
           {invoice.totalWithTax.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
         </p>
-        <p className="text-[10px] text-muted-foreground">
-          TVA: {invoice.taxAmount.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"}
-        </p>
+        {(invoice.additionalServicesTotal ?? 0) > 0 ? (
+          <p className="text-[10px] text-orange-600">
+            +{invoice.additionalServicesTotal!.toLocaleString("fr-FR")} {invoice.currency === "CHF" ? "CHF" : "€"} add.
+          </p>
+        ) : null}
       </div>
 
       {/* Status */}
       <div className="shrink-0">
-        <span
-          className={`text-xs font-medium px-2 py-1 rounded-full ${
-            invoice.paymentStatus === "paid"
-              ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-              : invoice.paymentStatus === "partial"
-              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300"
-              : "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-          }`}
-        >
-          {invoice.paymentStatus === "paid" ? "Payée" : invoice.paymentStatus === "partial" ? "Partiel" : "En attente"}
-        </span>
+        <StatusBadge
+          status={invoice.paymentStatus}
+          variant="billing"
+          onStatusChange={(newStatus: BillingStatus) => {
+            const updatedInvoice = {
+              ...invoice,
+              paymentStatus: newStatus,
+              ...(newStatus === "paid" ? { paymentDate: new Date().toISOString() } : {}),
+            };
+            onUpdate(updatedInvoice);
+            if (newStatus === "paid") {
+              fireConfetti();
+              toast.success("Facture marquée comme payée !");
+            }
+          }}
+        />
       </div>
 
       {/* Actions */}

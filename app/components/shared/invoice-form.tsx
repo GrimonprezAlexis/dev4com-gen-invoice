@@ -35,9 +35,10 @@ export function InvoiceForm({
   companyInfo,
 }: InvoiceFormProps) {
   const { user } = useAuth();
-  const [services, setServices] = useState<Service[]>([
-    { id: crypto.randomUUID(), quantity: 1, description: "", unitPrice: 0, amount: 0 },
-  ]);
+  const [defaultServiceId] = useState(() => crypto.randomUUID());
+  const [services, setServices] = useState<Service[]>(
+    initialData?.services || [{ id: defaultServiceId, quantity: 1, description: "", unitPrice: 0, amount: 0 }]
+  );
   const [subtotal, setSubtotal] = useState(0);
   const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [discountValue, setDiscountValue] = useState(0);
@@ -50,10 +51,14 @@ export function InvoiceForm({
   const [billingCountry, setBillingCountry] = useState<BillingCountry>(initialData?.billingCountry || companyInfo?.country || "FR");
   const [taxRate, setTaxRate] = useState<number>(currency === "EUR" ? 20 : currency === "CHF" ? 8.1 : 0);
 
-  // Collapsible sections
+  // Collapsible sections — expandedServices tracks which services are OPEN
+  // Editing: empty set = all collapsed by default
+  // New: first service open so user can fill it
   const [showClient, setShowClient] = useState(true);
   const [showConditions, setShowConditions] = useState(false);
-  const [collapsedServices, setCollapsedServices] = useState<Set<string>>(new Set());
+  const [expandedServices, setExpandedServices] = useState<Set<string>>(
+    () => initialData ? new Set() : new Set([defaultServiceId])
+  );
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
@@ -98,6 +103,7 @@ export function InvoiceForm({
       setServices(initialData.services);
       setDiscountType(initialData.discount.type);
       setDiscountValue(initialData.discount.value);
+      setExpandedServices(new Set());
     }
   }, [initialData]);
 
@@ -133,7 +139,9 @@ export function InvoiceForm({
   };
 
   const addService = () => {
-    setServices([...services, { id: crypto.randomUUID(), quantity: 1, description: "", unitPrice: 0, amount: 0 }]);
+    const newId = crypto.randomUUID();
+    setServices([...services, { id: newId, quantity: 1, description: "", unitPrice: 0, amount: 0 }]);
+    setExpandedServices((prev) => { const next = new Set(prev); next.add(newId); return next; });
   };
 
   const removeService = (id: string) => {
@@ -200,7 +208,7 @@ export function InvoiceForm({
   };
 
   const toggleServiceCollapse = (id: string) => {
-    setCollapsedServices((prev) => {
+    setExpandedServices((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -209,11 +217,11 @@ export function InvoiceForm({
   };
 
   const collapseAll = () => {
-    setCollapsedServices(new Set(services.map((s) => s.id)));
+    setExpandedServices(new Set());
   };
 
   const expandAll = () => {
-    setCollapsedServices(new Set());
+    setExpandedServices(new Set(services.map((s) => s.id)));
   };
 
   const handleDragStart = (id: string) => {
@@ -328,10 +336,10 @@ export function InvoiceForm({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={collapsedServices.size === services.length ? expandAll : collapseAll}
+                  onClick={expandedServices.size === 0 ? expandAll : collapseAll}
                   className="h-7 text-xs gap-1 text-muted-foreground"
                 >
-                  {collapsedServices.size === services.length ? (
+                  {expandedServices.size === 0 ? (
                     <><ChevronDown className="w-3 h-3" /> Tout ouvrir</>
                   ) : (
                     <><ChevronUp className="w-3 h-3" /> Tout replier</>
@@ -348,7 +356,7 @@ export function InvoiceForm({
           </div>
           <div className="p-2 space-y-1.5 max-h-[300px] overflow-y-auto">
             {services.map((service, idx) => {
-              const isCollapsed = collapsedServices.has(service.id);
+              const isCollapsed = !expandedServices.has(service.id);
               const isDragging = draggedId === service.id;
               const isDragOver = dragOverId === service.id;
               return (

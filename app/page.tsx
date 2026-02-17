@@ -172,7 +172,7 @@ function HomeContent() {
 
   const updateInvoiceStatus = async (
     invoiceId: string,
-    status: "draft" | "sent" | "accepted" | "rejected" | "paid"
+    status: "draft" | "pending" | "sent" | "accepted" | "rejected" | "paid"
   ) => {
     try {
       await updateInvoice(invoiceId, { status });
