@@ -7,9 +7,15 @@ import {
   Document,
   StyleSheet,
   Image,
+  Font,
 } from "@react-pdf/renderer";
 import { Invoice, BillingInvoice } from "@/app/types";
 import { formatSwissNumber } from "@/lib/swiss-utils";
+
+Font.register({
+  family: "DancingScript",
+  src: "/fonts/DancingScript-Regular.ttf",
+});
 
 // Colors
 const COLORS = {
@@ -263,9 +269,8 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   signatureName: {
-    fontSize: 10,
-    fontFamily: "Courier",
-    fontStyle: "italic",
+    fontSize: 14,
+    fontFamily: "DancingScript",
     marginBottom: 2,
   },
   signatureDate: {
