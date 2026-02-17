@@ -45,6 +45,7 @@ import { BillingPreview } from "./components/billing/preview";
 import { BillingInvoice, Invoice } from "./types";
 import { useConfetti } from "./hooks/use-confetti";
 import { DemoButton } from "./components/demo-button";
+import { BezierLoader } from "./components/shared/bezier-loader";
 import { ThemeToggle } from "./components/theme-toggle";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { useAuth } from "@/contexts/auth-context";
@@ -241,11 +242,7 @@ function HomeContent() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <BezierLoader />;
   }
 
   return (
