@@ -45,11 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string) => {
-    const userCredential = await registerWithEmail(email, password);
-    // After registration, migrate existing data to this user
-    if (userCredential.user) {
-      await migrateDataToUser(userCredential.user.uid);
-    }
+    await registerWithEmail(email, password);
   };
 
   const logout = async () => {
