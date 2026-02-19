@@ -23,8 +23,6 @@ import {
   Mail,
   Receipt,
 } from "lucide-react";
-import confetti from "canvas-confetti";
-
 type DocumentType = "quote" | "billing";
 
 // Steps configuration per document type and payment mode
@@ -92,7 +90,8 @@ export default function ValidationPage() {
   const quote = isQuote ? (document as Invoice | null) : null;
   const billing = isBilling ? (document as BillingInvoice | null) : null;
 
-  const fireConfetti = useCallback(() => {
+  const fireConfetti = useCallback(async () => {
+    const confetti = (await import("canvas-confetti")).default;
     const duration = 3000;
     const end = Date.now() + duration;
 
