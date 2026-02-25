@@ -61,6 +61,7 @@ export interface Invoice {
   createdAt: Date;
   currency?: string;
   showTax?: boolean;
+  showSiren?: boolean;
   billingCountry?: BillingCountry;
   isTemplate?: boolean;
   templateName?: string;
@@ -95,6 +96,7 @@ export interface BillingInvoice {
   createdAt: Date;
   quoteNumber: string;
   showTax?: boolean;
+  showSiren?: boolean;
   billingCountry?: BillingCountry;
   // Deposit deduction tracking
   depositDeducted?: boolean;
@@ -102,5 +104,5 @@ export interface BillingInvoice {
   depositAmount?: number;
   originalTotal?: number;
   additionalServicesTotal?: number;
-  additionalServices?: { id: string; description: string; amount: number }[];
+  additionalServices?: { id: string; description: string; amount: number; gifted?: boolean }[];
 }

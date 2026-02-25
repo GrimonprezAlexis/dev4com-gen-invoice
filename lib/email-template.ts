@@ -4,6 +4,8 @@ interface EmailTemplateOptions {
   companyLogo?: string;
   companyAddress?: string;
   companySiren?: string;
+  billingCountry?: string;
+  showSiren?: boolean;
   documentType: "quote" | "billing";
   documentNumber: string;
   validationUrl?: string;
@@ -79,6 +81,7 @@ export function buildEmailHtml(options: EmailTemplateOptions): string {
     companyLogo,
     companyAddress,
     companySiren,
+    showSiren,
     documentType,
     documentNumber,
     validationUrl,
@@ -102,7 +105,7 @@ export function buildEmailHtml(options: EmailTemplateOptions): string {
 
   const footerParts = [companyName];
   if (companyAddress) footerParts.push(companyAddress);
-  if (companySiren) footerParts.push(`SIREN ${companySiren}`);
+  if (companySiren && showSiren === true) footerParts.push(`SIREN ${companySiren}`);
   const footerLine = footerParts.filter(Boolean).join(" &middot; ");
 
   return `<!DOCTYPE html>

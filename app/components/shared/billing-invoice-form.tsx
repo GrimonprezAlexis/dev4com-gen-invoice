@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BillingInvoice, Invoice, BillingCountry, PaymentAccount } from "@/app/types";
 import { getDefaultTaxRate } from "@/lib/swiss-utils";
-import { CreditCard, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { CreditCard, ChevronDown, ChevronUp, Plus, Trash2, Gift } from "lucide-react";
 import { getPaymentAccounts } from "@/lib/firebase";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -58,7 +58,7 @@ export function BillingInvoiceForm({
   );
   const [showNotes, setShowNotes] = useState(!!invoice?.notes);
   const [additionalServices, setAdditionalServices] = useState<
-    { id: string; description: string; amount: number }[]
+    { id: string; description: string; amount: number; gifted?: boolean }[]
   >(invoice?.additionalServices || []);
   const [showAdditionalServices, setShowAdditionalServices] = useState(
     (invoice?.additionalServices?.length || 0) > 0
@@ -151,6 +151,7 @@ export function BillingInvoiceForm({
       currency,
       taxRate: finalTaxRate,
       showTax,
+      showSiren: invoice?.showSiren ?? quote.showSiren ?? false,
       billingCountry,
       paymentAccount: selectedPaymentAccount,
       depositDeducted: deductDeposit && hasDeposit,
@@ -290,19 +291,45 @@ export function BillingInvoiceForm({
                     placeholder="Description"
                     className="h-8 text-sm flex-1"
                   />
-                  <Input
-                    type="number"
-                    value={service.amount || ""}
-                    onChange={(e) =>
+                  <button
+                    type="button"
+                    title={service.gifted ? "Service offert (cliquer pour annuler)" : "Marquer comme offert"}
+                    onClick={() =>
                       setAdditionalServices((prev) =>
                         prev.map((s) =>
-                          s.id === service.id ? { ...s, amount: parseFloat(e.target.value) || 0 } : s
+                          s.id === service.id
+                            ? { ...s, gifted: !s.gifted, amount: !s.gifted ? 0 : s.amount }
+                            : s
                         )
                       )
                     }
-                    placeholder="Montant"
-                    className="h-8 text-sm w-24"
-                  />
+                    className={`p-1 rounded transition-colors flex-shrink-0 ${
+                      service.gifted
+                        ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
+                        : "text-slate-400 hover:text-emerald-500"
+                    }`}
+                  >
+                    <Gift className="w-4 h-4" />
+                  </button>
+                  {service.gifted ? (
+                    <span className="h-8 w-24 text-sm text-emerald-600 font-medium flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/40 rounded-md border border-emerald-200 dark:border-emerald-800">
+                      Offert
+                    </span>
+                  ) : (
+                    <Input
+                      type="number"
+                      value={service.amount || ""}
+                      onChange={(e) =>
+                        setAdditionalServices((prev) =>
+                          prev.map((s) =>
+                            s.id === service.id ? { ...s, amount: parseFloat(e.target.value) || 0 } : s
+                          )
+                        )
+                      }
+                      placeholder="Montant"
+                      className="h-8 text-sm w-24"
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() =>

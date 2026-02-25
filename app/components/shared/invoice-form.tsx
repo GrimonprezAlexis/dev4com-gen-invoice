@@ -46,6 +46,7 @@ export function InvoiceForm({
   const [totalAmount, setTotalAmount] = useState(0);
   const [currency, setCurrency] = useState<string>(initialData?.currency || "EUR");
   const [showTax, setShowTax] = useState<boolean>(initialData?.showTax ?? false);
+  const [showSiren, setShowSiren] = useState<boolean>(initialData?.showSiren ?? false);
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [selectedPaymentAccount, setSelectedPaymentAccount] = useState<PaymentAccount | undefined>(initialData?.paymentAccount);
@@ -187,6 +188,7 @@ export function InvoiceForm({
       createdAt: initialData?.createdAt || new Date(),
       company: companyInfo || data.company,
       showTax,
+      showSiren,
       paymentAccount: selectedPaymentAccount,
       billingCountry,
       currency,
@@ -307,6 +309,15 @@ export function InvoiceForm({
               className="w-4 h-4"
             />
             <span className="text-xs">TVA {showTax ? `${taxRate}%` : "Non"}</span>
+          </label>
+          <label className="flex items-center gap-2 h-8 px-2 rounded border bg-background cursor-pointer hover:bg-accent/50">
+            <input
+              type="checkbox"
+              checked={showSiren}
+              onChange={(e) => setShowSiren(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <span className="text-xs">SIREN {showSiren ? "Oui" : "Non"}</span>
           </label>
           <div className="ml-auto">
             <TemplateSelector onSelectTemplate={handleTemplateSelect} currentInvoice={initialData || undefined} />

@@ -287,15 +287,17 @@ export const FrenchPDFDocument = ({ document, type, qrCodeDataUrl }: FrenchPDFDo
             <Text style={styles.sectionTitle}>Emetteur</Text>
             <Text style={styles.companyInfo}>{document.company.name}</Text>
             <Text style={styles.companyInfo}>{document.company.address}</Text>
-            <Text style={styles.companyInfo}>
-              SIREN: {document.company.siren}
-            </Text>
+            {!!(document.showSiren && document.company.siren) && (
+              <Text style={styles.companyInfo}>
+                SIREN: {document.company.siren}
+              </Text>
+            )}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.sectionTitle}>Client</Text>
             <Text style={styles.companyInfo}>{document.client.name}</Text>
             <Text style={styles.companyInfo}>{document.client.address}</Text>
-            {document.client.siren && (
+            {!!(document.showSiren && document.client.siren) && (
               <Text style={styles.companyInfo}>
                 SIREN: {document.client.siren}
               </Text>
@@ -323,6 +325,20 @@ export const FrenchPDFDocument = ({ document, type, qrCodeDataUrl }: FrenchPDFDo
               </Text>
             </View>
           ))}
+          {!isQuote && !!(document as BillingInvoice).additionalServices?.length && (
+            (document as BillingInvoice).additionalServices!.map((service) => (
+              <View key={service.id} style={[styles.tableRow, service.gifted ? { backgroundColor: "#f0fdf4" } : {}]}>
+                <Text style={styles.col1}>1</Text>
+                <Text style={[styles.col2, service.gifted ? { color: "#16a34a" } : {}]}>{service.description}</Text>
+                <Text style={[styles.col3, service.gifted ? { color: "#16a34a" } : {}]}>
+                  {service.gifted ? "Offert" : `${formatFrenchNumber(service.amount)} ${currencySymbol}`}
+                </Text>
+                <Text style={[styles.col4, service.gifted ? { color: "#16a34a" } : {}]}>
+                  {service.gifted ? "0,00" : formatFrenchNumber(service.amount)} {currencySymbol}
+                </Text>
+              </View>
+            ))
+          )}
         </View>
 
         <View style={styles.totalsSection}>

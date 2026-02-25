@@ -497,6 +497,20 @@ export const SwissPDFDocument = ({ document: doc, type, qrCodeDataUrl }: SwissPD
                 </Text>
               </View>
             ))}
+            {isBilling && !!(billingDoc.additionalServices?.length) && (
+              billingDoc.additionalServices!.map((service, index) => (
+                <View key={service.id} style={[styles.tableRow, service.gifted ? { backgroundColor: "#f0fdf4" } : {}]}>
+                  <Text style={[styles.cellText, styles.colPosition]}>{doc.services.length + index + 1}</Text>
+                  <Text style={[styles.cellText, styles.colQuantity]}>1</Text>
+                  <Text style={[styles.cellText, styles.colDescription, service.gifted ? { color: "#16a34a" } : {}]}>
+                    {service.description}
+                  </Text>
+                  <Text style={[styles.cellText, styles.colTotal, service.gifted ? { color: "#16a34a" } : {}]}>
+                    {service.gifted ? "Offert" : `${currencySymbol} ${formatSwissNumber(service.amount)}`}
+                  </Text>
+                </View>
+              ))
+            )}
           </View>
 
           {/* Summary Section */}

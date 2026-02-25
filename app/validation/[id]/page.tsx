@@ -22,6 +22,7 @@ import {
   Check,
   Mail,
   Receipt,
+  Banknote,
 } from "lucide-react";
 type DocumentType = "quote" | "billing";
 
@@ -65,6 +66,7 @@ export default function ValidationPage() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [paymentCancelled, setPaymentCancelled] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<"stripe" | "transfer" | null>(null);
 
   const isQuote = documentType === "quote";
   const isBilling = documentType === "billing";
@@ -405,14 +407,14 @@ export default function ValidationPage() {
         }),
       });
 
-      if (!response.ok) throw new Error("Erreur checkout");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Erreur checkout");
 
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
+      if (data.url) {
+        window.location.href = data.url;
       }
-    } catch (err) {
-      setActionError("Erreur lors de la redirection vers le paiement.");
+    } catch (err: any) {
+      setActionError(err?.message || "Erreur lors de la redirection vers le paiement.");
       setIsRedirecting(false);
     }
   };
@@ -643,7 +645,7 @@ export default function ValidationPage() {
                     {company?.name}
                   </p>
                   <p className="text-slate-500 text-sm">{company?.address}</p>
-                  {company?.siren && (
+                  {company?.siren && !!document?.showSiren && (
                     <p className="text-slate-400 text-xs mt-1">
                       SIREN: {company.siren}
                     </p>
@@ -657,7 +659,7 @@ export default function ValidationPage() {
                     {client?.name}
                   </p>
                   <p className="text-slate-500 text-sm">{client?.address}</p>
-                  {client?.siren && (
+                  {client?.siren && !!document?.showSiren && (
                     <p className="text-slate-400 text-xs mt-1">
                       SIREN: {client.siren}
                     </p>
@@ -999,7 +1001,7 @@ export default function ValidationPage() {
                 disabled={
                   !firstName.trim() ||
                   !lastName.trim() ||
-                  !email.trim() ||
+                  !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
                   isSigning
                 }
                 className="w-full h-14 text-base font-medium bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/20"
@@ -1153,50 +1155,179 @@ export default function ValidationPage() {
                 </p>
               </div>
 
-              {/* Trust badges */}
-              <div className="flex flex-wrap justify-center gap-4 mb-6">
-                <div className="flex items-center gap-2 text-slate-500 text-xs">
-                  <Lock className="w-4 h-4" />
-                  <span>Paiement sécurisé</span>
+              {/* Method selector — shown when paymentAccount exists and no mode chosen yet */}
+              {document?.paymentAccount?.iban && paymentMode === null ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-500 text-center mb-4">
+                    Choisissez votre mode de règlement
+                  </p>
+                  <button
+                    onClick={() => setPaymentMode("stripe")}
+                    className="w-full flex items-center gap-4 p-4 border-2 border-slate-200 hover:border-blue-400 rounded-xl transition-all text-left"
+                  >
+                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-800">
+                        Paiement en ligne
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Par carte bancaire via Stripe
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 ml-auto" />
+                  </button>
+                  <button
+                    onClick={() => setPaymentMode("transfer")}
+                    className="w-full flex items-center gap-4 p-4 border-2 border-slate-200 hover:border-emerald-400 rounded-xl transition-all text-left"
+                  >
+                    <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Banknote className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-800">
+                        Virement bancaire
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Virement SEPA depuis votre banque
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 ml-auto" />
+                  </button>
                 </div>
-                <div className="flex items-center gap-2 text-slate-500 text-xs">
-                  <Shield className="w-4 h-4" />
-                  <span>Données protégées</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-500 text-xs">
-                  <CreditCard className="w-4 h-4" />
-                  <span>Stripe Checkout</span>
-                </div>
-              </div>
+              ) : paymentMode === "transfer" ? (
+                /* Bank transfer details — no status update in Firestore */
+                <div className="space-y-4">
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-emerald-800 mb-3 flex items-center gap-2">
+                      <Banknote className="w-4 h-4" />
+                      Coordonnées bancaires
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-emerald-700">Bénéficiaire</span>
+                        <span className="font-medium text-emerald-900">
+                          {document?.paymentAccount?.accountHolder}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 text-sm">
+                        <span className="text-emerald-700">IBAN</span>
+                        <span className="font-mono font-medium text-emerald-900 text-xs tracking-wide break-all">
+                          {document?.paymentAccount?.iban
+                            .replace(/\s/g, "")
+                            .replace(/(.{4})/g, "$1 ")
+                            .trim()}
+                        </span>
+                      </div>
+                      {document?.paymentAccount?.bic && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-emerald-700">BIC / SWIFT</span>
+                          <span className="font-mono font-medium text-emerald-900">
+                            {document.paymentAccount.bic}
+                          </span>
+                        </div>
+                      )}
+                      <div className="border-t border-emerald-200 pt-2 mt-2 flex justify-between text-sm">
+                        <span className="text-emerald-700">Référence</span>
+                        <span className="font-medium text-emerald-900">
+                          {docLabel} {docNumber}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-emerald-700">Montant</span>
+                        <span className="font-bold text-emerald-900">
+                          {formatCurrency(getPaymentAmount(document))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-              {actionError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                  <p>{actionError}</p>
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <p>
+                      Indiquez la référence{" "}
+                      <strong>
+                        {docLabel} {docNumber}
+                      </strong>{" "}
+                      dans le libellé de votre virement pour faciliter son
+                      traitement.
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={() => setStep(confirmationStep)}
+                    className="w-full h-12 font-medium bg-emerald-600 hover:bg-emerald-700 rounded-xl"
+                  >
+                    <Check className="w-5 h-5 mr-2" />
+                    J'ai noté les coordonnées bancaires
+                  </Button>
+
+                  <button
+                    onClick={() => setPaymentMode(null)}
+                    className="text-sm text-slate-400 hover:text-slate-600 mx-auto block"
+                  >
+                    ← Choisir un autre mode de paiement
+                  </button>
                 </div>
+              ) : (
+                /* Stripe payment (default or explicitly selected) */
+                <>
+                  <div className="flex flex-wrap justify-center gap-4 mb-6">
+                    <div className="flex items-center gap-2 text-slate-500 text-xs">
+                      <Lock className="w-4 h-4" />
+                      <span>Paiement sécurisé</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 text-xs">
+                      <Shield className="w-4 h-4" />
+                      <span>Données protégées</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-500 text-xs">
+                      <CreditCard className="w-4 h-4" />
+                      <span>Stripe Checkout</span>
+                    </div>
+                  </div>
+
+                  {actionError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                      <p>{actionError}</p>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handlePayment}
+                    disabled={isRedirecting}
+                    className="w-full h-14 text-base font-medium bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/20"
+                  >
+                    {isRedirecting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Redirection vers Stripe...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-5 h-5 mr-2" />
+                        Payer {formatCurrency(getPaymentAmount(document))}
+                      </>
+                    )}
+                  </Button>
+
+                  <p className="text-xs text-slate-400 text-center mt-4">
+                    Vous serez redirigé vers la page de paiement sécurisée
+                    Stripe
+                  </p>
+
+                  {document?.paymentAccount?.iban && (
+                    <button
+                      onClick={() => setPaymentMode(null)}
+                      className="text-sm text-slate-400 hover:text-slate-600 mx-auto block mt-2"
+                    >
+                      ← Choisir un autre mode de paiement
+                    </button>
+                  )}
+                </>
               )}
-
-              <Button
-                onClick={handlePayment}
-                disabled={isRedirecting}
-                className="w-full h-14 text-base font-medium bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/20"
-              >
-                {isRedirecting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Redirection vers Stripe...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-5 h-5 mr-2" />
-                    Payer {formatCurrency(getPaymentAmount(document))}
-                  </>
-                )}
-              </Button>
-
-              <p className="text-xs text-slate-400 text-center mt-4">
-                Vous serez redirigé vers la page de paiement sécurisée Stripe
-              </p>
             </Card>
 
             <button
@@ -1216,7 +1347,9 @@ export default function ValidationPage() {
                 <CheckCircle2 className="w-12 h-12 text-emerald-500" />
               </div>
               <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                Merci pour votre confiance !
+                {paymentMode === "transfer"
+                  ? "Virement enregistré !"
+                  : "Merci pour votre confiance !"}
               </h1>
               <p className="text-slate-500">
                 {isQuote ? (
@@ -1226,7 +1359,11 @@ export default function ValidationPage() {
                       {docNumber}
                     </span>{" "}
                     a été accepté
-                    {hasPaymentStep ? " et le paiement confirmé" : ""}.
+                    {paymentMode === "transfer"
+                      ? ". Votre virement est attendu."
+                      : hasPaymentStep
+                      ? " et le paiement confirmé."
+                      : "."}
                   </>
                 ) : (
                   <>
@@ -1234,7 +1371,9 @@ export default function ValidationPage() {
                     <span className="font-semibold text-slate-700">
                       {docNumber}
                     </span>{" "}
-                    a été réglée avec succès.
+                    {paymentMode === "transfer"
+                      ? "est en attente de votre virement."
+                      : "a été réglée avec succès."}
                   </>
                 )}
               </p>
@@ -1269,32 +1408,49 @@ export default function ValidationPage() {
                 </div>
               )}
 
-              {/* Payment info (only if payment was made) */}
+              {/* Payment info */}
               {hasPaymentStep && (
-                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100 mb-6">
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <CreditCard className="w-4 h-4 text-white" />
+                paymentMode === "transfer" ? (
+                  <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100 mb-6">
+                    <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Banknote className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-amber-700">
+                        Virement bancaire en attente
+                      </p>
+                      <p className="text-xs text-amber-600">
+                        Référence : {docLabel} {docNumber} —{" "}
+                        {formatCurrency(getPaymentAmount(document))}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-blue-700">
-                      Paiement de{" "}
-                      {formatCurrency(getPaymentAmount(document))} confirmé
-                      {isQuote &&
-                        (document as Invoice).deposit > 0 &&
-                        ` (acompte ${(document as Invoice).deposit}%)`}
-                    </p>
-                    <p className="text-xs text-blue-600">
-                      Payé le{" "}
-                      {new Date().toLocaleDateString("fr-FR", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                ) : (
+                  <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100 mb-6">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <CreditCard className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-700">
+                        Paiement de{" "}
+                        {formatCurrency(getPaymentAmount(document))} confirmé
+                        {isQuote &&
+                          (document as Invoice).deposit > 0 &&
+                          ` (acompte ${(document as Invoice).deposit}%)`}
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        Payé le{" "}
+                        {new Date().toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )
               )}
 
               {/* Email notification */}

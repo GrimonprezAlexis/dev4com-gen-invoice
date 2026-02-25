@@ -31,14 +31,33 @@ export async function POST(request: Request) {
         ]
       : undefined;
 
+    let companyLogo: string | undefined = invoice?.company?.logo || undefined;
+    const logoAttachments: { filename: string; content: Buffer; content_id: string }[] = [];
+
+    if (companyLogo?.startsWith("data:")) {
+      const match = companyLogo.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        const [, mimeType, base64Content] = match;
+        const ext = mimeType.split("/")[1] || "png";
+        logoAttachments.push({
+          filename: `logo.${ext}`,
+          content: Buffer.from(base64Content, "base64"),
+          content_id: "company-logo",
+        });
+        companyLogo = "cid:company-logo";
+      }
+    }
+
     const hasPayment = validationUrl?.includes("withPayment=true");
 
     const htmlContent = buildEmailHtml({
       message,
       companyName: invoice?.company?.name || "",
-      companyLogo: invoice?.company?.logo || undefined,
+      companyLogo,
       companyAddress: invoice?.company?.address || "",
       companySiren: invoice?.company?.siren || "",
+      billingCountry: invoice?.billingCountry,
+      showSiren: invoice?.showSiren,
       documentType: "billing",
       documentNumber: invoice?.number || "",
       validationUrl,
@@ -46,12 +65,14 @@ export async function POST(request: Request) {
       attachmentName: attachment?.filename,
     });
 
+    const allAttachments = [...(attachments ?? []), ...logoAttachments];
+
     const response = await resend.emails.send({
-      from: "Dev4Ecom <contact@dev4com.com>",
+      from: "Dev4Ecom <noreply@dev4com.com>",
       to: email,
       subject,
       html: htmlContent,
-      attachments,
+      attachments: allAttachments.length ? allAttachments : undefined,
     });
 
     if (response.error) {
