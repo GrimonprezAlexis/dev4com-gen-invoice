@@ -8,7 +8,11 @@ function getStripe() {
     ? process.env.STRIPE_SECRET_KEY_LIVE
     : process.env.STRIPE_SECRET_KEY_TEST;
   if (!key) throw new Error(`STRIPE_SECRET_KEY_${isProduction ? "LIVE" : "TEST"} is not set`);
-  return new Stripe(key, { apiVersion: "2026-01-28.clover" });
+  return new Stripe(key, {
+    apiVersion: "2026-01-28.clover",
+    httpClient: Stripe.createFetchHttpClient(),
+    maxNetworkRetries: 1,
+  });
 }
 
 export async function POST(request: Request) {
@@ -55,7 +59,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error: any) {
-    console.error("Error creating checkout session:", error);
+    console.error("Error creating checkout session:", {
+      type: error?.type,
+      code: error?.code,
+      statusCode: error?.statusCode,
+      message: error?.message,
+    });
     const message = error?.message || "Failed to create checkout session";
     return NextResponse.json({ error: message }, { status: 500 });
   }
