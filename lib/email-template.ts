@@ -11,6 +11,7 @@ interface EmailTemplateOptions {
   validationUrl?: string;
   withPayment?: boolean;
   attachmentName?: string;
+  infoBlock?: string;
 }
 
 function getButtonLabel(
@@ -82,6 +83,7 @@ export function buildEmailHtml(options: EmailTemplateOptions): string {
     companyAddress,
     companySiren,
     showSiren,
+    infoBlock,
     documentType,
     documentNumber,
     validationUrl,
@@ -174,6 +176,15 @@ ${contentHtml}
 </td>
 </tr>
 </table>
+
+${infoBlock ? `<!-- Info Block -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="padding: 0 40px 28px;">
+${infoBlock}
+</td>
+</tr>
+</table>` : ""}
 
 ${
   attachmentName

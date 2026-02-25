@@ -1256,7 +1256,24 @@ export default function ValidationPage() {
                   </div>
 
                   <Button
-                    onClick={() => setStep(confirmationStep)}
+                    onClick={async () => {
+                      try {
+                        await fetch(`/api/quotes/${id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            action: "virement",
+                            signature: {
+                              name: `${firstName} ${lastName}`.trim(),
+                              email,
+                            },
+                          }),
+                        });
+                      } catch (e) {
+                        console.error("Error sending virement email:", e);
+                      }
+                      setStep(confirmationStep);
+                    }}
                     className="w-full h-12 font-medium bg-emerald-600 hover:bg-emerald-700 rounded-xl"
                   >
                     <Check className="w-5 h-5 mr-2" />

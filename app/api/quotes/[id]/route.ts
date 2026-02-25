@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { Resend } from "resend";
+import { buildEmailHtml } from "@/lib/email-template";
 
 export async function GET(
   request: Request,
@@ -310,13 +311,48 @@ const generateOwnerPaymentEmail = (quote: any, clientName: string, clientEmail: 
   `;
 };
 
+const buildVirementInfoBlock = (
+  accountHolder: string,
+  iban: string,
+  bic: string,
+  reference: string,
+  amount: string
+) => {
+  const font = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
+  const ibanFormatted = iban.replace(/\s/g, "").replace(/(.{4})/g, "$1 ").trim();
+  const row = (label: string, value: string, mono = false, last = false) => `
+<tr>
+<td style="padding: 7px 0;${last ? "" : " border-bottom: 1px solid #e8e6e1;"}">
+<span style="font-family: ${font}; font-size: 12px; color: #94a3b8;">${label}</span>
+</td>
+<td style="padding: 7px 0;${last ? "" : " border-bottom: 1px solid #e8e6e1;"} text-align: right;">
+<span style="font-family: ${mono ? "'Courier New', Courier, monospace" : font}; font-size: ${last ? "16px" : "13px"}; font-weight: ${last ? "700" : "600"}; color: ${last ? "#0f172a" : "#1e293b"};">${value}</span>
+</td>
+</tr>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="padding: 16px 20px; background-color: #f8f7f4; border: 1px solid #e8e6e1;">
+<p style="margin: 0 0 14px; font-family: ${font}; font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase;">Coordonnées bancaires</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+${row("Bénéficiaire", accountHolder)}
+${row("IBAN", ibanFormatted, true)}
+${bic ? row("BIC / SWIFT", bic, true) : ""}
+${row("Référence", reference)}
+${row("Montant", amount, false, true)}
+</table>
+<p style="margin: 14px 0 0; font-family: ${font}; font-size: 11px; color: #94a3b8; line-height: 1.5;">Pensez à indiquer la référence <strong style="color: #64748b;">${reference}</strong> dans le libellé de votre virement.</p>
+</td>
+</tr>
+</table>`;
+};
+
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const body = await request.json();
-    const { status, signature, payment } = body;
+    const { status, signature, payment, action } = body;
 
     const docRef = doc(db, "invoices", params.id);
     const docSnap = await getDoc(docRef);
@@ -329,6 +365,65 @@ export async function PATCH(
     }
 
     const quoteData = docSnap.data();
+
+    // Handle virement confirmation: send email only, no Firestore update
+    if (action === "virement") {
+      const sigName = signature?.name || quoteData.signature?.name || "Client";
+      const sigEmail = signature?.email || quoteData.signature?.email;
+      const currency = quoteData.currency || "EUR";
+      const isDeposit = (quoteData.deposit || 0) > 0;
+      const virementAmount = isDeposit
+        ? quoteData.totalAmount * (quoteData.deposit / 100)
+        : quoteData.totalAmount;
+      const amountStr = formatCurrencyWithSymbol(virementAmount, currency);
+      const reference = `Devis ${quoteData.number}`;
+      const paymentAccount = quoteData.paymentAccount;
+
+      try {
+        if (sigEmail && paymentAccount?.iban) {
+          const infoBlock = buildVirementInfoBlock(
+            paymentAccount.accountHolder || quoteData.company?.name || "",
+            paymentAccount.iban,
+            paymentAccount.bic || "",
+            reference,
+            amountStr
+          );
+          const message = `Bonjour ${sigName},\n\nVotre devis ${quoteData.number} a bien été signé et accepté. Pour finaliser votre commande, veuillez effectuer un virement bancaire avec les coordonnées ci-dessous.\n\nL'équipe de ${quoteData.company?.name || "Dev4Ecom"} vous recontactera dès réception de votre virement.\n\nMerci pour votre confiance !`;
+          await resend.emails.send({
+            from: "Dev4Ecom <contact@dev4com.com>",
+            to: sigEmail,
+            subject: `Virement en attente - Devis ${quoteData.number}`,
+            html: buildEmailHtml({
+              message,
+              companyName: quoteData.company?.name || "Dev4Ecom",
+              companyLogo: quoteData.company?.logo,
+              companyAddress: quoteData.company?.address,
+              companySiren: quoteData.showSiren ? (quoteData.company?.siren || "") : "",
+              documentType: "quote",
+              documentNumber: quoteData.number,
+              infoBlock,
+            }),
+          });
+        }
+
+        await resend.emails.send({
+          from: "Dev4Ecom <contact@dev4com.com>",
+          to: "contact@dev4com.com",
+          subject: `⏳ Virement attendu - Devis ${quoteData.number} - ${quoteData.client?.name || "Client"}`,
+          html: buildEmailHtml({
+            message: `Le client ${sigName} (${sigEmail || "email non renseigné"}) a confirmé avoir noté les coordonnées bancaires pour le devis ${quoteData.number}.\n\nMontant attendu : ${amountStr}\nRéférence : ${reference}`,
+            companyName: quoteData.company?.name || "Dev4Ecom",
+            documentType: "quote",
+            documentNumber: quoteData.number,
+          }),
+        });
+      } catch (emailError) {
+        console.error("Error sending virement emails:", emailError);
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
     const signedAt = new Date();
 
     const updateData: Record<string, any> = {};
