@@ -358,6 +358,7 @@ export default function ValidationPage() {
             name: `${firstName} ${lastName}`,
             email: email,
           },
+          withPayment,
         }),
       });
 

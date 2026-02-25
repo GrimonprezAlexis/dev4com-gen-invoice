@@ -45,65 +45,30 @@ const formatCurrency = (amount: number) => {
   }).format(amount) + " €";
 };
 
-const generateClientConfirmationEmail = (quote: any, signatureName: string) => {
-  return `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px 20px;">
-      <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px; text-align: center;">
-          <div style="width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-            <span style="font-size: 32px;">✅</span>
-          </div>
-          <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Confirmation de signature</h1>
-        </div>
-
-        <!-- Content -->
-        <div style="padding: 32px;">
-          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-            Bonjour <strong>${signatureName}</strong>,
-          </p>
-          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-            Nous vous confirmons que votre devis a bien été accepté et signé avec succès.
-          </p>
-
-          <!-- Quote Summary -->
-          <div style="background: #1e293b; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-            <h2 style="color: #3b82f6; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 16px 0;">Récapitulatif du devis</h2>
-            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
-              <span style="color: #94a3b8; font-size: 14px;">Numéro:</span>
-              <span style="color: white; font-size: 14px; float: right; font-weight: 600;">${quote.number}</span>
-            </div>
-            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
-              <span style="color: #94a3b8; font-size: 14px;">Émetteur:</span>
-              <span style="color: #3b82f6; font-size: 14px; float: right;">${quote.company?.name || 'N/A'}</span>
-            </div>
-            <div style="border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px;">
-              <span style="color: #94a3b8; font-size: 14px;">Montant Total TTC:</span>
-              <span style="color: #3b82f6; font-size: 16px; float: right; font-weight: 700;">${formatCurrency(quote.totalAmount)}</span>
-            </div>
-            <div style="padding-top: 8px;">
-              <span style="color: #94a3b8; font-size: 14px;">Signé par:</span>
-              <span style="color: white; font-size: 14px; float: right; font-style: italic;">${signatureName}</span>
-            </div>
-          </div>
-
-          <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 8px 0;">
-            L'équipe de <strong>${quote.company?.name || 'Dev4Ecom'}</strong> vous recontactera prochainement pour les prochaines étapes.
-          </p>
-          <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0;">
-            Merci pour votre confiance !
-          </p>
-        </div>
-
-        <!-- Footer -->
-        <div style="background: #f1f5f9; padding: 20px 32px; text-align: center;">
-          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-            Cet email a été envoyé automatiquement suite à votre signature électronique.
-          </p>
-        </div>
-      </div>
-    </div>
-  `;
+const buildQuoteSummaryBlock = (number: string, companyName: string, totalAmount: string, signatureName: string) => {
+  const font = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
+  const row = (label: string, value: string, bold = false, italic = false, last = false) => `
+<tr>
+<td style="padding: 7px 0;${last ? "" : " border-bottom: 1px solid #e8e6e1;"}">
+<span style="font-family: ${font}; font-size: 12px; color: #94a3b8;">${label}</span>
+</td>
+<td style="padding: 7px 0;${last ? "" : " border-bottom: 1px solid #e8e6e1;"} text-align: right;">
+<span style="font-family: ${font}; font-size: 13px; font-weight: ${bold ? "700" : "600"}; font-style: ${italic ? "italic" : "normal"}; color: #1e293b;">${value}</span>
+</td>
+</tr>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td style="padding: 16px 20px; background-color: #f8f7f4; border: 1px solid #e8e6e1;">
+<p style="margin: 0 0 14px; font-family: ${font}; font-size: 11px; font-weight: 600; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase;">Récapitulatif du devis</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+${row("Numéro", number)}
+${row("Émetteur", companyName)}
+${row("Montant Total TTC", `<strong>${totalAmount}</strong>`, true)}
+${row("Signé par", signatureName, false, true, true)}
+</table>
+</td>
+</tr>
+</table>`;
 };
 
 const generateOwnerNotificationEmail = (quote: any, signatureName: string, clientEmail: string) => {
@@ -352,7 +317,7 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const { status, signature, payment, action } = body;
+    const { status, signature, payment, action, withPayment } = body;
 
     const docRef = doc(db, "invoices", params.id);
     const docSnap = await getDoc(docRef);
@@ -456,14 +421,32 @@ export async function PATCH(
     const quote = { ...quoteData, id: docSnap.id } as any;
 
     // Send confirmation emails if quote is accepted (signature step)
+    // When withPayment=true, the client email is deferred to the payment confirmation step
     if (status === "accepted" && signature) {
       try {
-        if (signature.email) {
+        if (!withPayment && signature.email) {
+          const currency = quote.currency || "EUR";
+          const totalStr = formatCurrencyWithSymbol(quote.totalAmount, currency);
+          const summaryBlock = buildQuoteSummaryBlock(
+            quote.number,
+            quote.company?.name || "Dev4Ecom",
+            totalStr,
+            signature.name
+          );
           await resend.emails.send({
             from: "Dev4Ecom <contact@dev4com.com>",
             to: signature.email,
             subject: `Confirmation de signature - Devis ${quote.number}`,
-            html: generateClientConfirmationEmail(quote, signature.name),
+            html: buildEmailHtml({
+              message: `Bonjour ${signature.name},\n\nVotre devis ${quote.number} a bien été accepté et signé avec succès. L'équipe de ${quote.company?.name || "Dev4Ecom"} vous recontactera prochainement pour les prochaines étapes.\n\nMerci pour votre confiance !`,
+              companyName: quote.company?.name || "Dev4Ecom",
+              companyLogo: quote.company?.logo,
+              companyAddress: quote.company?.address,
+              companySiren: quote.showSiren ? (quote.company?.siren || "") : "",
+              documentType: "quote",
+              documentNumber: quote.number,
+              infoBlock: summaryBlock,
+            }),
           });
         }
 
